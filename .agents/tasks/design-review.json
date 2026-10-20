@@ -1,0 +1,31 @@
+{
+  "verdict": "CHANGES_REQUESTED",
+  "findings": [
+    { "id": 1, "severity": "HIGH", "title": "Generated curatedGuides.ts imports './schema' without .js; fails backend tsc under NodeNext", "fix": "sync-shared emits `from './schema.js'` for both targets; backend imports generated files with .js extensions." },
+    { "id": 2, "severity": "MEDIUM", "title": "Frontend tsconfig/scripts unspecified; skipLibCheck:false breaks build (hls.js types need TS>=5.7, pinned TS 5.6.3)", "fix": "Specify frontend tsconfig with skipLibCheck:true, moduleResolution bundler; define build/typecheck/test scripts for both apps; backend include:[\"src\"]." },
+    { "id": 3, "severity": "MEDIUM", "title": "GuideDraftSchema contradictory (per-section confidence vs top-level map) and not written out", "fix": "Define GuideDraftSchema explicitly with a top-level confidence object of nine literal SECTION_KEYS (see review snippet)." },
+    { "id": 4, "severity": "MEDIUM", "title": "Offline zodResponseFormat test does not catch strict-mode violations (verified: .optional() and .url() accepted)", "fix": "Test walks the emitted JSON schema asserting additionalProperties:false, required==all keys, and no format/pattern/length/min/max/default keywords." },
+    { "id": 5, "severity": "MEDIUM", "title": "StreamEvent TS shape and server/client error-code unions undefined", "fix": "Add discriminated union { event, data } plus ErrorCode/ClientErrorCode/Stage types to shared/schema.ts; route emits meta and done." },
+    { "id": 6, "severity": "MEDIUM", "title": "Abort/timeout error mapping unspecified; OpenAI SDK throws APIUserAbortError not signal.reason", "fix": "Route catch: if signal.aborted use signal.reason code; llm.ts never retries after abort; map OpenAI connection/5xx errors to LLM_FAILED retryable; per-call timeouts via AbortSignal.any." },
+    { "id": 7, "severity": "MEDIUM", "title": "Concurrency check-then-acquire race across async limiter; inline limiter(req,res,next) hangs on 429", "fix": "Middleware chain with synchronous concurrency.tryAcquire() before limiter; limiter handler releases slot; release in finally." },
+    { "id": 8, "severity": "MEDIUM", "title": "Whitespace collapse runs before control-char rejection, so \\t/\\n are accepted (violates FR6)", "fix": "Reject /\\p{Cc}/u on raw input first, then trim and collapse spaces." },
+    { "id": 9, "severity": "MEDIUM", "title": "Post-processing does not coerce LLM output to schema minimums/optionals; app.website not allow-listed", "fix": "Add normalizeDraft: null->undefined, drop empty items, placeholder for empty required strings, default review.types, fix durations, hostname as empty title, website allow-listed like consoleUrl, supported+0 steps -> unclear." },
+    { "id": 10, "severity": "MEDIUM", "title": "GuideSummary lacks aliases but Library search matches aliases", "fix": "Add 'aliases' to GuideSummary Pick and toSummary; test 'gmail' finds Google Workspace." },
+    { "id": 11, "severity": "MEDIUM", "title": "UI section -> confidence key mapping unspecified (AC 17)", "fix": "Add explicit mapping table; Summary and Sources carry no tag; test asserts nine tags." },
+    { "id": 12, "severity": "MEDIUM", "title": "Client handling of pre-stream errors (retryable/titles) and keys-missing banner unspecified", "fix": "Add per-code title/retryable table in src/lib/errors.ts; Generate page checks /api/health and shows non-blocking 'Live research isn't configured' banner while keeping form enabled." },
+    { "id": 13, "severity": "MEDIUM", "title": "PDF section-id post-check impossible: marked 15 emits no heading ids; ids never listed; 10 vs 11 content files", "fix": "Wrap each content file in <section id=\"sec-<stem>\">, check the explicit REQUIRED list, fix content filenames to 11 stems." },
+    { "id": 14, "severity": "NIT", "title": "Figma review.required boolean value undefined", "fix": "required:false, types:['other'], confidence.review 'uncertain', entry in verification.uncertain." },
+    { "id": 15, "severity": "NIT", "title": "source.index and read-{i} numbering ambiguous", "fix": "0-based candidate-list position, display-only." },
+    { "id": 16, "severity": "NIT", "title": "slugify undefined", "fix": "NFKD, lowercase, non-[a-z0-9]+ -> '-', trim, fallback 'app'." },
+    { "id": 17, "severity": "NIT", "title": "Cold-start notice text differs from AC 20", "fix": "Use exact 'Waking up the agent server…' everywhere; first byte = fetch resolved." },
+    { "id": 18, "severity": "NIT", "title": "chunkSizeWarningLimit 900 below measured ~1.1 MB three chunk", "fix": "Set 1200 or accept warning; correct estimate." },
+    { "id": 19, "severity": "NIT", "title": "Nested three@0.170 under stats-gl; deprecated three-mesh-bvh", "fix": "Do not import StatsGl/Bvh; optional overrides." },
+    { "id": 20, "severity": "NIT", "title": "Empty ALLOWED_ORIGINS string yields empty allow-list", "fix": "Treat '' as unset; warn in production when only localhost origins." },
+    { "id": 21, "severity": "NIT", "title": "TRUST_PROXY=1 on Render unverified", "fix": "Debug-log req.ip; README step to confirm and adjust." },
+    { "id": 22, "severity": "NIT", "title": "Screenshot script assumes running preview server", "fix": "Pre-flight fetch(BASE_URL) and exit 1 with start instructions." },
+    { "id": 23, "severity": "NIT", "title": "IsoDate accepts impossible dates", "fix": "Add round-trip Date refine." },
+    { "id": 24, "severity": "NIT", "title": "GuideDetail shows Retry for 400 INVALID_SLUG", "fix": "Treat 400 like 404." },
+    { "id": 25, "severity": "NIT", "title": "Store re-validation ownership stated inconsistently", "fix": "State once: every GuideStore.get safeParses and returns null on failure." }
+  ],
+  "reviewDoc": "c:\\Users\\yadav\\OneDrive\\Desktop\\Composio_Assignment/.agents/tasks/design-review.md"
+}

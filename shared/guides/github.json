@@ -1,0 +1,148 @@
+{
+  "schemaVersion": 1,
+  "slug": "github",
+  "aliases": ["github", "gh", "githuboauth", "githubapp"],
+  "app": {
+    "name": "GitHub",
+    "website": "https://github.com",
+    "category": "Developer Tools",
+    "brand": { "color": "#24292F", "monogram": "GH" }
+  },
+  "summary": "GitHub OAuth apps are the fastest OAuth setup of the curated set: register an app in your developer settings, set the callback URL, and start the authorization code flow immediately. There is no app-review or approval gate, so an app works the moment it is registered. GitHub recommends GitHub Apps (fine-grained permissions, short-lived tokens) over classic OAuth apps for most new integrations.",
+  "oauthAvailability": {
+    "status": "supported",
+    "note": "Classic OAuth apps and GitHub Apps both use OAuth 2.0. GitHub recommends GitHub Apps for most new integrations.",
+    "alternatives": []
+  },
+  "difficulty": { "level": "Easy", "reason": "A single registration form, no review or approval step, and tokens work immediately." },
+  "timeEstimate": {
+    "handsOn": { "min": 10, "max": 20, "unit": "minutes" },
+    "approvalWait": { "min": 0, "max": 0, "unit": "minutes", "note": "No review gate for OAuth apps." },
+    "criticalPath": "Registering the app and wiring the authorization callback URL is the only work; there is nothing to wait on."
+  },
+  "review": {
+    "required": false,
+    "requiredWhen": "Never for OAuth-app functionality. Tokens are active as soon as the app is registered.",
+    "types": ["none"],
+    "stages": []
+  },
+  "prerequisites": [
+    { "item": "A GitHub account (personal or an organization you administer)", "detail": "A user or organization can own up to 100 OAuth apps.", "actor": "human" },
+    { "item": "A publicly reachable authorization callback URL", "detail": "You can register up to 10 callback URLs per OAuth app.", "actor": "assist" }
+  ],
+  "steps": [
+    {
+      "title": "Open Developer settings and start a new OAuth app",
+      "detail": "From your profile menu, open Settings, then Developer settings, then OAuth apps, and click New OAuth App (or Register a new application the first time).",
+      "consoleUrl": "https://github.com/settings/developers",
+      "actor": "human",
+      "estimate": "2 min"
+    },
+    {
+      "title": "Fill in the application details",
+      "detail": "Enter the application name, the homepage URL, an optional description shown to users, and the Authorization callback URL. You can add up to 10 callback URLs. Only use information you consider public; avoid internal URLs.",
+      "consoleUrl": "https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/creating-an-oauth-app",
+      "actor": "assist",
+      "estimate": "5 min",
+      "gotcha": "GitHub warns against putting sensitive data (such as internal URLs) in an OAuth app's public fields."
+    },
+    {
+      "title": "Choose device flow and token expiration, then register",
+      "detail": "Enable Device Flow if your app identifies users on input-constrained devices. Leave Expire user access tokens enabled unless your code cannot yet refresh short-lived tokens, then click Register application.",
+      "consoleUrl": "https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/authorizing-oauth-apps",
+      "actor": "human",
+      "estimate": "3 min"
+    },
+    {
+      "title": "Store the client ID and secret, then implement the flow",
+      "detail": "Copy the client ID and generate a client secret. Implement the web authorization code flow: send users to the authorize endpoint with your client_id and scope, then exchange the returned code for an access token.",
+      "consoleUrl": "https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/authorizing-oauth-apps",
+      "actor": "agent",
+      "estimate": "10 min"
+    }
+  ],
+  "redirectUris": {
+    "notes": [
+      "Up to 10 authorization callback URLs can be registered per OAuth app.",
+      "The callback URL in your authorize request must match a registered callback URL."
+    ],
+    "examples": ["https://app.example.com/auth/github/callback", "http://localhost:3000/auth/github/callback"]
+  },
+  "scopes": {
+    "recommended": [
+      { "scope": "read:user", "purpose": "Read the authenticated user's profile data." },
+      { "scope": "user:email", "purpose": "Read the user's email addresses." },
+      { "scope": "repo", "purpose": "Full control of private repositories (request only if write access is needed)." },
+      { "scope": "read:org", "purpose": "Read organization membership and teams." }
+    ],
+    "sensitive": [
+      { "scope": "repo", "level": "privileged", "consequence": "Grants full read/write to all private repositories the user can access; request narrower scopes where possible." },
+      { "scope": "admin:org", "level": "admin", "consequence": "Full administrative access to organizations the user manages." },
+      { "scope": "delete_repo", "level": "privileged", "consequence": "Allows deletion of repositories; rarely needed." }
+    ],
+    "notes": [
+      "GitHub Apps use fine-grained permissions and give users per-repository control, unlike classic OAuth scopes.",
+      "Request the narrowest scope set that satisfies your feature."
+    ]
+  },
+  "blockers": [
+    {
+      "title": "redirect_uri_mismatch",
+      "symptom": "Authorization fails with a redirect URI mismatch error.",
+      "cause": "The redirect_uri in the authorize request does not match a callback URL registered on the app.",
+      "resolution": "Add the exact callback URL (scheme, host, path) to the app's Authorization callback URLs and retry.",
+      "actor": "human"
+    },
+    {
+      "title": "Token unexpectedly expires",
+      "symptom": "A previously working token stops working after a period.",
+      "cause": "Expire user access tokens is enabled, so tokens are short-lived and must be refreshed.",
+      "resolution": "Implement the refresh token exchange, or disable token expiration only if your code cannot yet refresh tokens.",
+      "actor": "agent"
+    }
+  ],
+  "agentHandoff": {
+    "agentCan": [
+      "Implement the authorization code exchange and token refresh",
+      "Draft the callback route and scope list",
+      "Document the redirect URIs to register"
+    ],
+    "humanMust": [
+      "Sign in to GitHub and register the OAuth app",
+      "Generate and securely store the client secret"
+    ],
+    "handoffPoints": [
+      "After the human registers the app and shares the client ID, the agent can wire the flow."
+    ]
+  },
+  "confidence": {
+    "difficulty": { "level": "verified", "note": "No review step is documented for OAuth apps.", "sourceRefs": [0, 1] },
+    "timeEstimate": { "level": "community", "note": "Hands-on effort is an author estimate; there is no approval wait.", "sourceRefs": [0] },
+    "review": { "level": "verified", "note": "OAuth-app registration has no review gate.", "sourceRefs": [0] },
+    "prerequisites": { "level": "verified", "note": "Account and callback URL requirements from the creation docs.", "sourceRefs": [0] },
+    "steps": { "level": "verified", "note": "Steps follow the creating-an-OAuth-app and authorizing docs.", "sourceRefs": [0, 1] },
+    "redirectUris": { "level": "verified", "note": "Up to 10 callback URLs per the creation docs.", "sourceRefs": [0] },
+    "scopes": { "level": "verified", "note": "Scope names from the scopes-for-OAuth-apps reference.", "sourceRefs": [2] },
+    "blockers": { "level": "community", "note": "Common integration issues; token expiry behavior is documented.", "sourceRefs": [1] },
+    "agentHandoff": { "level": "community", "note": "Author judgment on the agent/human split.", "sourceRefs": [0] }
+  },
+  "verification": {
+    "lastVerified": "2026-10-20",
+    "sources": [
+      { "url": "https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/creating-an-oauth-app", "title": "Creating an OAuth app - GitHub Docs", "kind": "official", "accessed": "2026-10-20" },
+      { "url": "https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/authorizing-oauth-apps", "title": "Authorizing OAuth apps - GitHub Docs", "kind": "official", "accessed": "2026-10-20" },
+      { "url": "https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/scopes-for-oauth-apps", "title": "Scopes for OAuth apps - GitHub Docs", "kind": "official", "accessed": "2026-10-20" }
+    ],
+    "checked": [
+      "Confirmed OAuth apps have no review/approval gate (creating-an-oauth-app).",
+      "Confirmed up to 10 callback URLs and up to 100 apps per owner.",
+      "Confirmed token expiration is on by default (authorizing-oauth-apps)."
+    ],
+    "corrected": [],
+    "uncertain": []
+  },
+  "generatedBy": "curated",
+  "generatedAt": "2026-10-20T00:00:00Z",
+  "model": null,
+  "query": null
+}

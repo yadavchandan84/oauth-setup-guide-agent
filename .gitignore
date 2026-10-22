@@ -8,10 +8,13 @@ build/
 .turbo/
 .vercel/
 
+# Generated (synced from shared/)
+frontend/src/generated/
+backend/src/generated/
+backend/.data/
+
 # Environment (keep .env.example)
-.env
-.env.local
-.env.*.local
+.env*
 !.env.example
 
 # Logs

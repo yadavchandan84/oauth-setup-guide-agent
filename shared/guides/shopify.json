@@ -1,0 +1,160 @@
+{
+  "schemaVersion": 1,
+  "slug": "shopify",
+  "aliases": ["shopify", "shopifyapp", "shopifypartner"],
+  "app": {
+    "name": "Shopify",
+    "website": "https://www.shopify.com",
+    "category": "E-commerce",
+    "brand": { "color": "#95BF47", "monogram": "SH" }
+  },
+  "summary": "A Shopify app authenticates to the GraphQL Admin API with an access token obtained after a merchant installs the app and approves its scopes; the CLI and app templates handle most of the OAuth flow for you. Building and testing is quick, but a public app distributed through the Shopify App Store goes through a Partner Program setup and an app review, and features that read customer personal data need a separate protected-customer-data approval.",
+  "oauthAvailability": {
+    "status": "supported",
+    "note": "Apps get an Admin API access token after a merchant install. Shopify CLI handles the OAuth token flow.",
+    "alternatives": ["Custom app with a directly requested token for stores in your own organization"]
+  },
+  "difficulty": { "level": "Hard", "reason": "Public distribution requires Partner Program setup, app review, and separate protected-customer-data approval." },
+  "timeEstimate": {
+    "handsOn": { "min": 1, "max": 3, "unit": "days" },
+    "approvalWait": { "min": 1, "max": 4, "unit": "weeks", "note": "App Store review plus any protected-customer-data approval." },
+    "criticalPath": "App Store review (and protected customer data approval for public apps) dominates the timeline."
+  },
+  "review": {
+    "required": true,
+    "requiredWhen": "Required to distribute a public app in the Shopify App Store. Custom apps for your own organization's stores skip the store review.",
+    "types": ["partner-program", "app-review"],
+    "stages": [
+      { "name": "Partner Program setup", "actor": "human", "duration": { "min": 1, "max": 3, "unit": "days" }, "description": "Create a Partner account and app, configure scopes and the OAuth redirect, and prepare the listing." },
+      { "name": "App Store review", "actor": "human", "duration": { "min": 1, "max": 4, "unit": "weeks" }, "description": "Shopify reviews functionality, UX, security, and listing quality before approving the public app." },
+      { "name": "Protected customer data approval", "actor": "human", "duration": { "min": 1, "max": 3, "unit": "weeks" }, "description": "Separate approval for public apps whose features read a customer's personal data." }
+    ]
+  },
+  "prerequisites": [
+    { "item": "A Shopify Partner account", "detail": "Public apps are created and managed from the Partner Dashboard.", "actor": "human" },
+    { "item": "A development store for testing", "detail": "Install and test the OAuth flow on a dev store before submitting.", "actor": "assist" },
+    { "item": "Shopify CLI set up", "detail": "The CLI and app templates implement the token flow so you rarely hand-code OAuth.", "actor": "agent" }
+  ],
+  "steps": [
+    {
+      "title": "Create the app and declare access scopes",
+      "detail": "Scaffold the app with Shopify CLI (or create it in the Partner Dashboard) and declare the access scopes your features require.",
+      "consoleUrl": "https://shopify.dev/docs/apps/build/authentication-authorization",
+      "actor": "assist",
+      "estimate": "half a day"
+    },
+    {
+      "title": "Install to a dev store and obtain a token",
+      "detail": "Run the install flow: the merchant approves the scopes and your app receives an access token (offline by default, online if requested). Send it in the X-Shopify-Access-Token header on every Admin API request.",
+      "consoleUrl": "https://shopify.dev/docs/apps/build/authentication-authorization",
+      "actor": "agent",
+      "estimate": "half a day",
+      "gotcha": "An online access token is further narrowed to the authorizing staff member's permissions, so a request can be refused even when the app holds the scope."
+    },
+    {
+      "title": "Request protected customer data access if needed",
+      "detail": "If your public app reads a customer's personal data (name, address, phone, email), request protected customer data access; a custom app has it automatically.",
+      "consoleUrl": "https://shopify.dev/docs/apps/launch/shopify-app-store/best-practices",
+      "actor": "human",
+      "estimate": "ongoing"
+    },
+    {
+      "title": "Prepare the listing and submit for App Store review",
+      "detail": "Follow the App Store best practices for listing quality, onboarding, and performance, then submit the public app for review.",
+      "consoleUrl": "https://shopify.dev/docs/apps/launch/shopify-app-store/best-practices",
+      "actor": "human",
+      "estimate": "ongoing"
+    }
+  ],
+  "redirectUris": {
+    "notes": [
+      "The OAuth redirect (allowed redirection) URL is configured in the app setup; the CLI manages it in development.",
+      "Embedded apps validate an ID token and then exchange it for an access token rather than a classic redirect."
+    ],
+    "examples": ["https://app.example.com/auth/callback"]
+  },
+  "scopes": {
+    "recommended": [
+      { "scope": "read_products", "purpose": "Read product catalog data." },
+      { "scope": "write_products", "purpose": "Create and update products." },
+      { "scope": "read_orders", "purpose": "Read order data." }
+    ],
+    "sensitive": [
+      { "scope": "read_customers", "level": "restricted", "consequence": "Reading customer personal data requires separate protected customer data approval for public apps." },
+      { "scope": "read_all_orders", "level": "restricted", "consequence": "Access to orders older than 60 days is granted per-app by Shopify, not to every app that declares it." }
+    ],
+    "notes": [
+      "Some scopes are granted by Shopify to individual apps rather than to every app that declares them.",
+      "Offline tokens persist across sessions; online tokens last only as long as the staff session."
+    ]
+  },
+  "blockers": [
+    {
+      "title": "App Store submission rejected",
+      "symptom": "Shopify declines the public app during review.",
+      "cause": "Functionality, UX, security, or listing quality did not meet App Store requirements.",
+      "resolution": "Address the reviewer feedback against the App Store best practices and resubmit.",
+      "actor": "human"
+    },
+    {
+      "title": "Customer-data fields return empty or error",
+      "symptom": "Customer name/email/address fields are missing in responses.",
+      "cause": "The public app lacks protected customer data approval, or the plan limits an admin-created custom app's access.",
+      "resolution": "Request protected customer data access; for custom apps, verify the store plan's field access.",
+      "actor": "human"
+    },
+    {
+      "title": "Online-token request refused despite holding the scope",
+      "symptom": "A GraphQL request is refused even though the app declared the scope.",
+      "cause": "An online access token is narrowed to the authorizing staff member's permissions.",
+      "resolution": "Use an offline token for background work, or ensure the staff member has the needed permission.",
+      "actor": "agent"
+    }
+  ],
+  "agentHandoff": {
+    "agentCan": [
+      "Scaffold the app with Shopify CLI and wire the token flow",
+      "Declare scopes and implement Admin API calls with the access token",
+      "Draft the listing copy and best-practices checklist"
+    ],
+    "humanMust": [
+      "Create and own the Partner account and app",
+      "Request protected customer data access and submit for App Store review",
+      "Respond to reviewer feedback"
+    ],
+    "handoffPoints": [
+      "Agent builds and tests the app on a dev store; a human drives Partner setup and the App Store review."
+    ]
+  },
+  "confidence": {
+    "difficulty": { "level": "verified", "note": "Public distribution requires review plus protected-customer-data approval.", "sourceRefs": [0, 1] },
+    "timeEstimate": { "level": "community", "note": "Review durations are community-reported; Shopify does not publish fixed SLAs.", "sourceRefs": [1] },
+    "review": { "level": "community", "note": "Review is required for public apps; stage durations are community-reported.", "sourceRefs": [1] },
+    "prerequisites": { "level": "verified", "note": "Partner account and token model from the authentication docs.", "sourceRefs": [0] },
+    "steps": { "level": "verified", "note": "Token flow and header usage from the authentication docs.", "sourceRefs": [0, 1] },
+    "redirectUris": { "level": "community", "note": "CLI manages redirects; embedded apps use ID-token exchange per the docs.", "sourceRefs": [0] },
+    "scopes": { "level": "verified", "note": "Per-app scope grants and protected customer data from the authentication docs.", "sourceRefs": [0] },
+    "blockers": { "level": "verified", "note": "Protected-data and online-token behavior documented in the authentication docs.", "sourceRefs": [0, 1] },
+    "agentHandoff": { "level": "community", "note": "Author judgment on the agent/human split.", "sourceRefs": [0] }
+  },
+  "verification": {
+    "lastVerified": "2026-10-20",
+    "sources": [
+      { "url": "https://shopify.dev/docs/apps/build/authentication-authorization", "title": "About app authentication - Shopify", "kind": "official", "accessed": "2026-10-20" },
+      { "url": "https://shopify.dev/docs/apps/launch/shopify-app-store/best-practices", "title": "Shopify App Store best practices", "kind": "official", "accessed": "2026-10-20" }
+    ],
+    "checked": [
+      "Confirmed the X-Shopify-Access-Token header model and offline/online token behavior.",
+      "Confirmed protected customer data needs separate approval for public apps.",
+      "Confirmed some scopes are granted to individual apps rather than universally."
+    ],
+    "corrected": [],
+    "uncertain": [
+      "App Store review durations vary by submission and are not published; treated as community-reported."
+    ]
+  },
+  "generatedBy": "curated",
+  "generatedAt": "2026-10-20T00:00:00Z",
+  "model": null,
+  "query": null
+}

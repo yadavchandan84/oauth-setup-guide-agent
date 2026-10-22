@@ -1,0 +1,156 @@
+{
+  "schemaVersion": 1,
+  "slug": "salesforce",
+  "aliases": ["salesforce", "sfdc", "connectedapp", "salesforceconnectedapp"],
+  "app": {
+    "name": "Salesforce Connected App",
+    "website": "https://www.salesforce.com",
+    "category": "CRM",
+    "brand": { "color": "#00A1E0", "monogram": "SF" }
+  },
+  "summary": "A Salesforce Connected App is the object that enables OAuth for external access to a Salesforce org: you create it in Setup, enable OAuth settings, set the callback URL and scopes, and consume the generated consumer key and secret. There is no mandatory Salesforce review to use a Connected App in your own org. The main time cost is that, after saving, the OAuth settings can take several minutes to propagate before the app works. Listing publicly on AppExchange is a separate, optional security review.",
+  "oauthAvailability": {
+    "status": "supported",
+    "note": "Connected Apps enable OAuth 2.0 for a Salesforce org. AppExchange listing (with security review) is optional.",
+    "alternatives": ["External Client Apps, Salesforce's newer app framework for some integration patterns"]
+  },
+  "difficulty": { "level": "Moderate", "reason": "Setup is form-driven, but OAuth settings, scope/policy choices, and propagation delays add moderate friction." },
+  "timeEstimate": {
+    "handsOn": { "min": 1, "max": 2, "unit": "hours" },
+    "approvalWait": { "min": 2, "max": 10, "unit": "minutes", "note": "Connected App OAuth settings can take 2-10 minutes to propagate after saving." },
+    "criticalPath": "Post-save propagation of OAuth settings is the only wait for in-org use; AppExchange review is a separate optional path."
+  },
+  "review": {
+    "required": false,
+    "requiredWhen": "No Salesforce review is required to use a Connected App in your own org. A security review is required only to list on AppExchange.",
+    "types": ["optional-listing"],
+    "stages": [
+      { "name": "OAuth settings propagation", "actor": "human", "duration": { "min": 2, "max": 10, "unit": "minutes" }, "description": "After saving, the Connected App's OAuth settings take a few minutes to become active across the org." }
+    ]
+  },
+  "prerequisites": [
+    { "item": "A Salesforce org with admin access", "detail": "Connected Apps are created in Setup; admin access is required.", "actor": "human" },
+    { "item": "A callback (redirect) URL", "detail": "Set in the Connected App's OAuth settings; must match the authorize request.", "actor": "assist" }
+  ],
+  "steps": [
+    {
+      "title": "Create a Connected App in Setup",
+      "detail": "In Setup, open App Manager and create a new Connected App. Provide the basic information (name, contact email).",
+      "consoleUrl": "https://help.salesforce.com/s/articleView?id=sf.connected_app_overview.htm&type=5",
+      "actor": "human",
+      "estimate": "15 min"
+    },
+    {
+      "title": "Enable OAuth settings and set the callback URL",
+      "detail": "Enable OAuth settings, enter the callback URL, and select the OAuth scopes the integration needs. Save the app.",
+      "consoleUrl": "https://help.salesforce.com/s/articleView?id=sf.connected_app_overview.htm&type=5",
+      "actor": "assist",
+      "estimate": "20 min",
+      "gotcha": "After saving, allow several minutes for the OAuth settings to propagate before the app will authorize."
+    },
+    {
+      "title": "Retrieve the consumer key and secret",
+      "detail": "Open the app's Manage Consumer Details to retrieve the consumer key and secret used in the OAuth flow.",
+      "consoleUrl": "https://help.salesforce.com/s/articleView?id=sf.connected_app_overview.htm&type=5",
+      "actor": "human",
+      "estimate": "5 min"
+    },
+    {
+      "title": "Implement the OAuth web server flow",
+      "detail": "Send users to the org's /services/oauth2/authorize endpoint with your consumer key, scopes, and redirect_uri, then exchange the code at /services/oauth2/token for an access token and refresh token.",
+      "consoleUrl": "https://developer.salesforce.com/docs/platform/api-rest/guide/intro-oauth-and-connected-apps.html",
+      "actor": "agent",
+      "estimate": "45 min"
+    }
+  ],
+  "redirectUris": {
+    "notes": [
+      "The callback URL is configured in the Connected App's OAuth settings and must match the authorize request.",
+      "Multiple callback URLs can be listed, one per line."
+    ],
+    "examples": ["https://app.example.com/salesforce/callback"]
+  },
+  "scopes": {
+    "recommended": [
+      { "scope": "api", "purpose": "Access the REST and other APIs on the user's behalf." },
+      { "scope": "refresh_token offline_access", "purpose": "Obtain a refresh token for long-lived access." },
+      { "scope": "openid", "purpose": "Retrieve an OpenID Connect identity token." }
+    ],
+    "sensitive": [
+      { "scope": "full", "level": "privileged", "consequence": "Grants access to all data the user can access; request narrower scopes where possible." },
+      { "scope": "web", "level": "sensitive", "consequence": "Allows using the access token on the web, including the ability to open web pages." }
+    ],
+    "notes": [
+      "Policies (permitted users, IP relaxation) are set on the Connected App and affect who can authorize.",
+      "Request the narrowest scopes; prefer api + refresh_token over full."
+    ]
+  },
+  "blockers": [
+    {
+      "title": "OAuth fails right after creating the app",
+      "symptom": "Authorization fails immediately after saving a new Connected App.",
+      "cause": "The OAuth settings have not finished propagating across the org.",
+      "resolution": "Wait a few minutes (commonly 2-10) after saving, then retry.",
+      "actor": "human"
+    },
+    {
+      "title": "redirect_uri mismatch",
+      "symptom": "The authorize request is rejected with a redirect URI error.",
+      "cause": "The redirect_uri does not match a callback URL configured on the Connected App.",
+      "resolution": "Add the exact callback URL to the app's OAuth settings and retry.",
+      "actor": "agent"
+    },
+    {
+      "title": "User blocked by app policy",
+      "symptom": "A valid user cannot authorize the app.",
+      "cause": "The Connected App's permitted-users policy or IP relaxation setting excludes the user.",
+      "resolution": "Adjust the permitted-users and IP policies in the app's Manage settings.",
+      "actor": "human"
+    }
+  ],
+  "agentHandoff": {
+    "agentCan": [
+      "Implement the web server OAuth flow and token refresh",
+      "Wire the callback route and scope list",
+      "Draft the Connected App OAuth configuration"
+    ],
+    "humanMust": [
+      "Create the Connected App in Setup with admin access",
+      "Set policies and retrieve the consumer key/secret"
+    ],
+    "handoffPoints": [
+      "A human creates and configures the Connected App; the agent implements the OAuth flow."
+    ]
+  },
+  "confidence": {
+    "difficulty": { "level": "verified", "note": "Connected App OAuth model documented; no mandatory in-org review.", "sourceRefs": [0] },
+    "timeEstimate": { "level": "community", "note": "Propagation delay is community-reported; hands-on is an estimate.", "sourceRefs": [0] },
+    "review": { "level": "community", "note": "In-org use needs no review; AppExchange security review is separate and optional.", "sourceRefs": [0] },
+    "prerequisites": { "level": "verified", "note": "Admin access and callback URL from the Connected App overview.", "sourceRefs": [0] },
+    "steps": { "level": "verified", "note": "Setup and OAuth-enable steps from the Connected App overview.", "sourceRefs": [0] },
+    "redirectUris": { "level": "community", "note": "Callback URL handling is standard; multiple URLs supported.", "sourceRefs": [0] },
+    "scopes": { "level": "community", "note": "Scope names are standard Salesforce OAuth scopes; selection is author guidance.", "sourceRefs": [0] },
+    "blockers": { "level": "community", "note": "Propagation and policy blockers are widely reported.", "sourceRefs": [0] },
+    "agentHandoff": { "level": "community", "note": "Author judgment on the agent/human split.", "sourceRefs": [0] }
+  },
+  "verification": {
+    "lastVerified": "2026-10-20",
+    "sources": [
+      { "url": "https://help.salesforce.com/s/articleView?id=sf.connected_app_overview.htm&type=5", "title": "Connected Apps overview - Salesforce Help", "kind": "official", "accessed": "2026-10-20" },
+      { "url": "https://developer.salesforce.com/docs/platform/api-rest/guide/intro-oauth-and-connected-apps.html", "title": "Intro to OAuth and Connected Apps - Salesforce Developers", "kind": "official", "accessed": "2026-10-20" }
+    ],
+    "checked": [
+      "Confirmed Connected Apps enable OAuth 2.0 for an org via the Connected Apps overview (Salesforce Help).",
+      "Confirmed in-org use needs no mandatory Salesforce review; AppExchange review is separate."
+    ],
+    "corrected": [],
+    "uncertain": [
+      "developer.salesforce.com returns HTTP 403 to automated fetches (bot protection); the page was confirmed reachable via browser and is classified blocked, not broken.",
+      "OAuth settings propagation delay (2-10 min) is community-reported, not an official fixed figure."
+    ]
+  },
+  "generatedBy": "curated",
+  "generatedAt": "2026-10-20T00:00:00Z",
+  "model": null,
+  "query": null
+}

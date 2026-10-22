@@ -1,0 +1,160 @@
+{
+  "schemaVersion": 1,
+  "slug": "figma",
+  "aliases": ["figma", "figmaapp", "figmaoauth"],
+  "app": {
+    "name": "Figma",
+    "website": "https://www.figma.com",
+    "category": "Design",
+    "brand": { "color": "#F24E1E", "monogram": "FG" }
+  },
+  "summary": "A Figma OAuth app lets your application call the Figma REST API on behalf of users. You create the app from My Apps, grab the client ID and secret (shown only once), associate it with a team or organization, configure a redirect and scopes, then run the authorization code flow. Apps start in a draft state. Private apps (scoped to your team/org) publish without review, but public apps that act on behalf of any authorizing user are reviewed by Figma when you publish them, and only become usable after Figma approves.",
+  "oauthAvailability": {
+    "status": "supported",
+    "note": "OAuth 2.0 for the Figma REST API. Apps start as draft; private apps skip review, public apps are reviewed by Figma.",
+    "alternatives": ["Personal access tokens for individual use", "Plan access tokens for org-level automation (Organization/Enterprise plans)"]
+  },
+  "difficulty": { "level": "Moderate", "reason": "Setup is straightforward, but a public app must pass Figma's review before it can authorize other users." },
+  "timeEstimate": {
+    "handsOn": { "min": 1, "max": 2, "unit": "hours" },
+    "approvalWait": { "min": 0, "max": 0, "unit": "minutes", "note": "Zero for private apps. Public apps wait on Figma's review; Figma does not publish a fixed duration." },
+    "criticalPath": "OAuth setup is quick; for a public app, Figma's publish review is the gate before it can authorize users."
+  },
+  "review": {
+    "required": true,
+    "requiredWhen": "Required for public OAuth apps: Figma reviews a public app when you publish it, and it can only authorize users after approval. Private and draft apps are not reviewed.",
+    "types": ["app-review"],
+    "stages": [
+      { "name": "Public app publish review", "actor": "human", "duration": { "min": 0, "max": 0, "unit": "days", "note": "Figma does not publish a fixed turnaround." }, "description": "When you publish a public OAuth app, Figma reviews it; the app can authorize any user only after Figma approves it." }
+    ]
+  },
+  "prerequisites": [
+    { "item": "A Figma account and a team or organization", "detail": "An OAuth app must be associated with a team or organization.", "actor": "human" },
+    { "item": "A callback endpoint on an external server", "detail": "Needed to exchange and refresh tokens.", "actor": "assist" }
+  ],
+  "steps": [
+    {
+      "title": "Create an OAuth app from My Apps",
+      "detail": "Click My Apps (or go to figma.com/developers/apps) and create a new app. Enter a name and select the team or organization to associate it with.",
+      "consoleUrl": "https://developers.figma.com/docs/rest-api/oauth-apps/",
+      "actor": "human",
+      "estimate": "10 min"
+    },
+    {
+      "title": "Copy the client ID and secret",
+      "detail": "Copy and securely store the Client ID and Client Secret. The secret is shown only once and is required for token exchange and refresh.",
+      "consoleUrl": "https://developers.figma.com/docs/rest-api/oauth-apps/",
+      "actor": "human",
+      "estimate": "5 min",
+      "gotcha": "The client secret is displayed only at creation; if you lose it you must regenerate it."
+    },
+    {
+      "title": "Configure the app and choose private or public",
+      "detail": "Configure the redirect callback and scopes. Choose private (default; usable only by your team/org members, no review) or public (usable by any authorizing user, requires Figma's review on publish).",
+      "consoleUrl": "https://developers.figma.com/docs/rest-api/oauth-apps/",
+      "actor": "assist",
+      "estimate": "20 min"
+    },
+    {
+      "title": "Implement the authorization code flow",
+      "detail": "Send users to Figma's authorization endpoint with your client ID, redirect, and scopes, then exchange the returned code for an access token and use it against the REST API.",
+      "consoleUrl": "https://developers.figma.com/docs/rest-api/authentication/",
+      "actor": "agent",
+      "estimate": "45 min"
+    }
+  ],
+  "redirectUris": {
+    "notes": [
+      "A callback endpoint on an external server is required to exchange and refresh tokens.",
+      "The redirect in the authorize request must match the app's configured callback."
+    ],
+    "examples": ["https://app.example.com/figma/oauth/callback"]
+  },
+  "scopes": {
+    "recommended": [
+      { "scope": "current_user:read", "purpose": "Read the user's name, email, and profile image." },
+      { "scope": "file_content:read", "purpose": "Read the contents of files, such as nodes and editor type." },
+      { "scope": "file_comments:read", "purpose": "Read comments for files." }
+    ],
+    "sensitive": [
+      { "scope": "files:read", "level": "privileged", "consequence": "Deprecated and extremely permissive; prefer granular scopes like file_content:read to reduce access surface." },
+      { "scope": "library_analytics:read", "level": "sensitive", "consequence": "Reads design system analytics; Enterprise plan only." },
+      { "scope": "org:activity_log_read", "level": "admin", "consequence": "Reads organization activity logs; Enterprise plan only and requires an org admin." }
+    ],
+    "notes": [
+      "Prefer granular scopes over the deprecated files:read; the file_read scope is also deprecated for OAuth 2 tokens.",
+      "Some scopes (variables, library analytics, org logs) are Enterprise-plan only."
+    ]
+  },
+  "blockers": [
+    {
+      "title": "Public app cannot authorize users",
+      "symptom": "A published public app still cannot make requests on behalf of other users.",
+      "cause": "Figma has not yet approved the public app in its publish review.",
+      "resolution": "Wait for Figma's review to approve the public app; keep it private if you only need team/org access.",
+      "actor": "human"
+    },
+    {
+      "title": "Lost client secret",
+      "symptom": "Token exchange fails and the secret is unavailable.",
+      "cause": "The client secret is shown only once at creation and was not stored.",
+      "resolution": "Regenerate the client secret in the app configuration and update your app.",
+      "actor": "human"
+    },
+    {
+      "title": "Existing OAuth app stopped working after platform update",
+      "symptom": "A previously working OAuth app needs changes to keep functioning.",
+      "cause": "Figma announced developer-platform updates that changed OAuth app registration requirements; older apps must update and re-publish.",
+      "resolution": "Follow Figma's Re-publish OAuth Apps guidance to update and re-publish the app.",
+      "actor": "human"
+    }
+  ],
+  "agentHandoff": {
+    "agentCan": [
+      "Implement the authorization code exchange and token refresh",
+      "Wire the redirect route and granular scopes",
+      "Draft the REST API calls"
+    ],
+    "humanMust": [
+      "Create the app, associate a team/org, and store the client secret",
+      "Decide private vs public and submit a public app for Figma's review"
+    ],
+    "handoffPoints": [
+      "A human creates the app and drives any public-app review; the agent implements the OAuth flow."
+    ]
+  },
+  "confidence": {
+    "difficulty": { "level": "verified", "note": "Public apps require Figma's review on publish; private apps do not.", "sourceRefs": [1] },
+    "timeEstimate": { "level": "community", "note": "Figma does not publish a review turnaround; wait is community-reported.", "sourceRefs": [1] },
+    "review": { "level": "verified", "note": "oauth-apps page states Figma reviews public apps and they work only after approval.", "sourceRefs": [1] },
+    "prerequisites": { "level": "verified", "note": "Team/org association and callback endpoint from the OAuth and authentication docs.", "sourceRefs": [0, 1] },
+    "steps": { "level": "verified", "note": "Create/configure steps from the oauth-apps page.", "sourceRefs": [1] },
+    "redirectUris": { "level": "verified", "note": "Callback-endpoint requirement from the oauth-apps page.", "sourceRefs": [1] },
+    "scopes": { "level": "verified", "note": "Scope list and deprecations from the scopes reference.", "sourceRefs": [2] },
+    "blockers": { "level": "verified", "note": "Public-review gate, one-time secret, and re-publish note from the oauth-apps page.", "sourceRefs": [1] },
+    "agentHandoff": { "level": "community", "note": "Author judgment on the agent/human split.", "sourceRefs": [1] }
+  },
+  "verification": {
+    "lastVerified": "2026-10-20",
+    "sources": [
+      { "url": "https://developers.figma.com/docs/rest-api/authentication/", "title": "Authentication - Figma Developer Docs", "kind": "official", "accessed": "2026-10-20" },
+      { "url": "https://developers.figma.com/docs/rest-api/oauth-apps/", "title": "OAuth apps - Figma Developer Docs", "kind": "official", "accessed": "2026-10-20" },
+      { "url": "https://developers.figma.com/docs/rest-api/scopes/", "title": "Scopes - Figma Developer Docs", "kind": "official", "accessed": "2026-10-20" }
+    ],
+    "checked": [
+      "Confirmed OAuth apps start in a draft state; private apps publish without review.",
+      "Confirmed public OAuth apps are reviewed by Figma on publish and can only authorize users after approval.",
+      "Confirmed the client secret is shown only once and granular scopes are preferred over deprecated files:read."
+    ],
+    "corrected": [
+      "Figma review question resolved: the oauth-apps page states public apps ARE reviewed by Figma on publish, so review.required was set to true with types ['app-review'] and a publish-review stage (was previously left uncertain in the plan)."
+    ],
+    "uncertain": [
+      "Figma does not publish a fixed public-app review turnaround; the approval-wait duration is treated as community-reported."
+    ]
+  },
+  "generatedBy": "curated",
+  "generatedAt": "2026-10-20T00:00:00Z",
+  "model": null,
+  "query": null
+}

@@ -1,0 +1,161 @@
+{
+  "schemaVersion": 1,
+  "slug": "zoom",
+  "aliases": ["zoom", "zoomapp", "zoommarketplace"],
+  "app": {
+    "name": "Zoom",
+    "website": "https://www.zoom.com",
+    "category": "Video",
+    "brand": { "color": "#0B5CFF", "monogram": "Z" }
+  },
+  "summary": "A Zoom OAuth app is easy to build and test in your own account, but any public or unlisted app must pass a dedicated, multi-part Marketplace review before it can be distributed. That review covers submission completeness, branding, functionality and usability, compliance, and a security review that tests against the OWASP Top 10 and checks for least-privilege scopes. Plan for a review cycle measured in weeks.",
+  "oauthAvailability": {
+    "status": "supported",
+    "note": "OAuth 2.0 apps are built in the Zoom App Marketplace. Public and unlisted apps require review before distribution.",
+    "alternatives": ["Account-level (admin-managed) apps that remain private to one account"]
+  },
+  "difficulty": { "level": "Hard", "reason": "Public/unlisted apps must pass a multi-part Marketplace review including a security review against the OWASP Top 10." },
+  "timeEstimate": {
+    "handsOn": { "min": 1, "max": 2, "unit": "days" },
+    "approvalWait": { "min": 1, "max": 4, "unit": "weeks", "note": "Review time varies with app quality, scope clarity, and listing completeness." },
+    "criticalPath": "The multi-part Marketplace review (functionality, compliance, and security testing) dominates the timeline."
+  },
+  "review": {
+    "required": true,
+    "requiredWhen": "Required for public and unlisted apps before they can be distributed. A private app used only in your own account can skip the Marketplace review.",
+    "types": ["app-review"],
+    "stages": [
+      { "name": "Submission completeness & branding", "actor": "human", "duration": { "min": 2, "max": 7, "unit": "days" }, "description": "Zoom checks metadata, technical design docs, security information, and branding guideline compliance." },
+      { "name": "Functionality, usability & compliance", "actor": "human", "duration": { "min": 1, "max": 3, "unit": "weeks" }, "description": "Reviewers verify install/uninstall, configuration, data flow, UX, and compliance with privacy requirements." },
+      { "name": "Security review", "actor": "human", "duration": { "min": 1, "max": 3, "unit": "weeks" }, "description": "Technical design review, OAuth scope evaluation for least privilege, and security testing against the OWASP Top 10." }
+    ]
+  },
+  "prerequisites": [
+    { "item": "A Zoom account and Marketplace developer access", "detail": "Apps are built and submitted in the Zoom App Marketplace.", "actor": "human" },
+    { "item": "Technical design and security documentation", "detail": "Required for submission completeness and the security review.", "actor": "human" },
+    { "item": "A clear test plan and test credentials", "detail": "Well-defined scopes and clear listing content shorten review time.", "actor": "assist" }
+  ],
+  "steps": [
+    {
+      "title": "Create an OAuth app in the Marketplace",
+      "detail": "In the Zoom App Marketplace, create an OAuth app (user-level or account-level) and configure your redirect URL and app credentials.",
+      "consoleUrl": "https://developers.zoom.us/docs/integrations/oauth/",
+      "actor": "assist",
+      "estimate": "half a day"
+    },
+    {
+      "title": "Select least-privilege scopes",
+      "detail": "Add only the scopes your features require. The security review verifies the app requests the minimum necessary scopes and may ask you to remove unused ones.",
+      "consoleUrl": "https://developers.zoom.us/docs/integrations/oauth/",
+      "actor": "assist",
+      "estimate": "2 hours",
+      "gotcha": "Poorly described or over-broad scopes lengthen the review; define each scope's purpose clearly."
+    },
+    {
+      "title": "Implement and test the OAuth flow",
+      "detail": "Implement the authorization code flow, verify install/uninstall and configuration, and test end-to-end data flow as a reviewer would.",
+      "consoleUrl": "https://developers.zoom.us/docs/integrations/oauth/",
+      "actor": "agent",
+      "estimate": "half a day"
+    },
+    {
+      "title": "Complete the build flow and submit for review",
+      "detail": "Fill in metadata, technical design, and security information, then submit. Expect a remediation report if the app does not pass, which you address and resubmit.",
+      "consoleUrl": "https://developers.zoom.us/docs/distribute/app-review-process/",
+      "actor": "human",
+      "estimate": "ongoing"
+    }
+  ],
+  "redirectUris": {
+    "notes": [
+      "The OAuth redirect URL is configured on the app in the Marketplace.",
+      "Use an HTTPS redirect that matches your deployed callback exactly."
+    ],
+    "examples": ["https://app.example.com/zoom/oauth/callback"]
+  },
+  "scopes": {
+    "recommended": [
+      { "scope": "meeting:read", "purpose": "Read the user's meetings." },
+      { "scope": "meeting:write", "purpose": "Create and update meetings." },
+      { "scope": "user:read", "purpose": "Read the user's profile." }
+    ],
+    "sensitive": [
+      { "scope": "recording:read", "level": "sensitive", "consequence": "Access to cloud recordings; reviewers scrutinize data handling of recordings." },
+      { "scope": "user:write:admin", "level": "admin", "consequence": "Admin-level user management; requires account admin and heightened review." }
+    ],
+    "notes": [
+      "The security review verifies least-privilege scope usage and may require removing unused scopes.",
+      "Granular (per-resource) scopes are preferred over broad classic scopes."
+    ]
+  },
+  "blockers": [
+    {
+      "title": "App rejected in review",
+      "symptom": "Zoom returns a remediation report instead of approving the app.",
+      "cause": "Functionality, usability, compliance, or security testing found issues.",
+      "resolution": "Complete every action item in the remediation report and resubmit.",
+      "actor": "human"
+    },
+    {
+      "title": "Scopes flagged as over-broad",
+      "symptom": "Reviewers ask you to remove or justify scopes.",
+      "cause": "The app requested more scopes than its functionality justifies.",
+      "resolution": "Remove unused scopes and clearly describe the purpose of each remaining scope.",
+      "actor": "human"
+    },
+    {
+      "title": "Security testing failures",
+      "symptom": "The app fails OWASP Top 10 or vulnerable-library checks.",
+      "cause": "Security testing surfaced vulnerabilities or outdated dependencies.",
+      "resolution": "Remediate findings, update vulnerable libraries, and resubmit for security review.",
+      "actor": "human"
+    }
+  ],
+  "agentHandoff": {
+    "agentCan": [
+      "Implement the OAuth authorization code flow and token refresh",
+      "Wire the least-privilege scope set and redirect route",
+      "Draft the technical design and scope-justification documentation"
+    ],
+    "humanMust": [
+      "Own the Marketplace app and submission",
+      "Provide security information and respond to the remediation report"
+    ],
+    "handoffPoints": [
+      "Agent builds and documents the app; a human submits and drives the multi-part review."
+    ]
+  },
+  "confidence": {
+    "difficulty": { "level": "verified", "note": "Public/unlisted apps undergo a dedicated multi-part review.", "sourceRefs": [1] },
+    "timeEstimate": { "level": "community", "note": "Review time varies and is not a fixed SLA per the review-process page.", "sourceRefs": [1] },
+    "review": { "level": "verified", "note": "Review stages (completeness, functionality, security) from the review-process page.", "sourceRefs": [1] },
+    "prerequisites": { "level": "verified", "note": "Submission completeness requires technical design and security info.", "sourceRefs": [1] },
+    "steps": { "level": "verified", "note": "OAuth setup from the OAuth guide; submission from the review-process page.", "sourceRefs": [0, 1] },
+    "redirectUris": { "level": "verified", "note": "Redirect URL configuration from the OAuth guide.", "sourceRefs": [0] },
+    "scopes": { "level": "verified", "note": "Least-privilege scope evaluation documented in the security review.", "sourceRefs": [1] },
+    "blockers": { "level": "verified", "note": "Remediation and OWASP testing documented in the review-process page.", "sourceRefs": [1] },
+    "agentHandoff": { "level": "community", "note": "Author judgment on the agent/human split.", "sourceRefs": [1] }
+  },
+  "verification": {
+    "lastVerified": "2026-10-20",
+    "sources": [
+      { "url": "https://developers.zoom.us/docs/integrations/oauth/", "title": "Create an OAuth app - Zoom Developer Docs", "kind": "official", "accessed": "2026-10-20" },
+      { "url": "https://developers.zoom.us/docs/distribute/app-review-process/", "title": "App Review Process - Zoom Developer Docs", "kind": "official", "accessed": "2026-10-20" }
+    ],
+    "checked": [
+      "Confirmed public and unlisted apps undergo a dedicated review.",
+      "Confirmed the review includes submission completeness, functionality/usability, compliance, and a security review (OWASP Top 10, least-privilege scopes).",
+      "Confirmed review time varies and is not a fixed SLA."
+    ],
+    "corrected": [
+      "App website redirected from zoom.us to www.zoom.com; updated app.website to the final URL."
+    ],
+    "uncertain": [
+      "Exact per-stage durations are not published by Zoom; stage durations are community-reported estimates."
+    ]
+  },
+  "generatedBy": "curated",
+  "generatedAt": "2026-10-20T00:00:00Z",
+  "model": null,
+  "query": null
+}

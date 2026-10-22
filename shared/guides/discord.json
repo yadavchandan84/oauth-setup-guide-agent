@@ -1,0 +1,150 @@
+{
+  "schemaVersion": 1,
+  "slug": "discord",
+  "aliases": ["discord", "discordbot", "discordapp"],
+  "app": {
+    "name": "Discord",
+    "website": "https://discord.com",
+    "category": "Communication",
+    "brand": { "color": "#5865F2", "monogram": "D" }
+  },
+  "summary": "Registering a Discord application and getting OAuth2 working is quick: create the app, grab the client ID and secret, and use the authorization code grant against discord.com/oauth2/authorize. There is no review to start building. Two things add friction later: some scopes require Discord's approval to use, and a bot that grows past 100 servers must pass Discord's bot verification to keep joining new servers.",
+  "oauthAvailability": {
+    "status": "supported",
+    "note": "Supports authorization code, implicit, client credentials, and bot/webhook flows. Some scopes need Discord approval.",
+    "alternatives": []
+  },
+  "difficulty": { "level": "Easy", "reason": "A single registration and standard OAuth2; review only appears for restricted scopes or large bots." },
+  "timeEstimate": {
+    "handsOn": { "min": 15, "max": 30, "unit": "minutes" },
+    "approvalWait": { "min": 0, "max": 0, "unit": "minutes", "note": "No review to start; bot verification applies only past 100 servers." },
+    "criticalPath": "Registering the app and wiring the OAuth2 flow; nothing to wait on for a standard integration."
+  },
+  "review": {
+    "required": false,
+    "requiredWhen": "Not required for standard OAuth2. Bot verification becomes mandatory to join new servers once a bot is in 100+ servers; some scopes require Discord approval.",
+    "types": ["other"],
+    "stages": []
+  },
+  "prerequisites": [
+    { "item": "A Discord account", "detail": "Used to create the application in the Developer Portal.", "actor": "human" },
+    { "item": "An application registered in the Developer Portal", "detail": "Provides the client_id and client_secret.", "actor": "assist" }
+  ],
+  "steps": [
+    {
+      "title": "Register an application and copy credentials",
+      "detail": "Create a new application in the Discord Developer Portal and copy the client_id and client_secret. Keep the secret handy for the token exchange.",
+      "consoleUrl": "https://discord.com/developers/applications",
+      "actor": "human",
+      "estimate": "5 min"
+    },
+    {
+      "title": "Configure OAuth2 and redirect URLs",
+      "detail": "Under OAuth2, add your redirect URL(s) and select the scopes your integration needs (for example identify, email, guilds).",
+      "consoleUrl": "https://docs.discord.com/developers/topics/oauth2",
+      "actor": "assist",
+      "estimate": "10 min"
+    },
+    {
+      "title": "Implement the authorization code grant",
+      "detail": "Send users to https://discord.com/oauth2/authorize with your client_id, scopes, and redirect_uri, then exchange the returned code at https://discord.com/api/oauth2/token for an access token.",
+      "consoleUrl": "https://docs.discord.com/developers/topics/oauth2",
+      "actor": "agent",
+      "estimate": "15 min",
+      "gotcha": "Requesting an approval-gated scope without Discord's approval can cause errors or undocumented behavior in the flow."
+    },
+    {
+      "title": "Plan for bot verification if you ship a bot",
+      "detail": "If your app includes a bot, note that once it is in 100+ servers it must complete Discord's bot verification to continue joining new servers.",
+      "consoleUrl": "https://docs.discord.com/developers/topics/permissions",
+      "actor": "human",
+      "estimate": "varies"
+    }
+  ],
+  "redirectUris": {
+    "notes": [
+      "Redirect URLs are registered under the application's OAuth2 settings.",
+      "The redirect_uri in the authorize request must match a registered URL."
+    ],
+    "examples": ["https://app.example.com/discord/callback"]
+  },
+  "scopes": {
+    "recommended": [
+      { "scope": "identify", "purpose": "Read the user's account without email." },
+      { "scope": "email", "purpose": "Include the user's email in /users/@me." },
+      { "scope": "guilds", "purpose": "List basic information about the user's guilds." },
+      { "scope": "bot", "purpose": "Add a bot to a selected guild." }
+    ],
+    "sensitive": [
+      { "scope": "applications.commands.permissions.update", "level": "privileged", "consequence": "Updates command permissions in a guild; use carefully." },
+      { "scope": "relationships.read", "level": "sensitive", "consequence": "Reads a user's friends, pending requests, and blocked users; part of the Social SDK and requires submitting for access." },
+      { "scope": "dm_channels.read", "level": "privileged", "consequence": "Only available to approved partners; reads information about the user's DMs." }
+    ],
+    "notes": [
+      "Several scopes (e.g. applications.builds.upload, rpc, dm_channels.read) are only available to approved partners.",
+      "Requesting approval-gated scopes without approval can break the OAuth2 flow."
+    ]
+  },
+  "blockers": [
+    {
+      "title": "Bot cannot join new servers",
+      "symptom": "A popular bot stops being able to join additional servers.",
+      "cause": "The bot reached 100+ servers without completing Discord's bot verification.",
+      "resolution": "Complete bot verification to continue scaling past the 100-server threshold.",
+      "actor": "human"
+    },
+    {
+      "title": "Scope request errors",
+      "symptom": "The OAuth2 flow errors or behaves unexpectedly for certain scopes.",
+      "cause": "An approval-gated or partner-only scope was requested without Discord's approval.",
+      "resolution": "Remove the scope or submit for access/approval before requesting it.",
+      "actor": "human"
+    }
+  ],
+  "agentHandoff": {
+    "agentCan": [
+      "Implement the authorization code exchange and token refresh",
+      "Wire the redirect route and scope selection",
+      "Draft the bot permission integer and invite URL"
+    ],
+    "humanMust": [
+      "Register the application and hold the client secret",
+      "Submit for bot verification or partner-only scope access when required"
+    ],
+    "handoffPoints": [
+      "Agent builds the OAuth2 flow; a human handles verification and partner-scope approvals."
+    ]
+  },
+  "confidence": {
+    "difficulty": { "level": "verified", "note": "Standard OAuth2 with no starting review; scope/verification gates documented.", "sourceRefs": [0] },
+    "timeEstimate": { "level": "community", "note": "Hands-on is an author estimate; no approval wait for standard apps.", "sourceRefs": [0] },
+    "review": { "level": "community", "note": "Bot verification past 100 servers is widely documented; no review to start.", "sourceRefs": [0, 1] },
+    "prerequisites": { "level": "verified", "note": "Account and application registration from the OAuth2 docs.", "sourceRefs": [0] },
+    "steps": { "level": "verified", "note": "Authorize/token endpoints and steps from the OAuth2 docs.", "sourceRefs": [0] },
+    "redirectUris": { "level": "verified", "note": "Redirect URL handling from the OAuth2 docs.", "sourceRefs": [0] },
+    "scopes": { "level": "verified", "note": "Scope list and approval gating from the OAuth2 scopes table.", "sourceRefs": [0] },
+    "blockers": { "level": "community", "note": "Approval-gated scope errors documented; the 100-server gate is well known.", "sourceRefs": [0, 1] },
+    "agentHandoff": { "level": "community", "note": "Author judgment on the agent/human split.", "sourceRefs": [0] }
+  },
+  "verification": {
+    "lastVerified": "2026-10-20",
+    "sources": [
+      { "url": "https://docs.discord.com/developers/topics/oauth2", "title": "OAuth2 - Discord Developer Docs", "kind": "official", "accessed": "2026-10-20" },
+      { "url": "https://docs.discord.com/developers/topics/permissions", "title": "Permissions - Discord Developer Docs", "kind": "official", "accessed": "2026-10-20" }
+    ],
+    "checked": [
+      "Confirmed authorize and token endpoints and the supported grant types.",
+      "Confirmed some scopes require Discord approval or are partner-only (OAuth2 scopes table)."
+    ],
+    "corrected": [
+      "Discord developer docs moved from discord.com/developers/docs to docs.discord.com/developers; cited the current docs.discord.com URLs."
+    ],
+    "uncertain": [
+      "The exact 100-server bot-verification threshold is widely reported; treated as community-reported here."
+    ]
+  },
+  "generatedBy": "curated",
+  "generatedAt": "2026-10-20T00:00:00Z",
+  "model": null,
+  "query": null
+}

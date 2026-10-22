@@ -1,0 +1,7 @@
+{
+  "task_id": "task-oauth-guide-agent",
+  "task_description": "Build a deployable full-stack OAuth App Approval Guide Agent per .agents/tasks/design.md (revision 3) and .agents/tasks/requirements.md (ACs 1-25): shared zod schema + sync tooling + link checker; Node 22 + Express 4 agent API (store, routes, Tavily+OpenAI SSE pipeline, curated loader); 14 researched curated guide JSON files; React 18 + Vite + Tailwind v3 + R3F 3D SPA; Vercel + Render deployment files + README; puppeteer/marked submission PDF pipeline. No commit/push, no git worktree.",
+  "status": "completed",
+  "feature_order": ["FEAT-001", "FEAT-002", "FEAT-003", "FEAT-004", "FEAT-005"],
+  "blocked_reason": null
+}

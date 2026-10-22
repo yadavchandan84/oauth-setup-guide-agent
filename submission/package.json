@@ -1,0 +1,14 @@
+{
+  "name": "oauth-guide-agent-submission",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "pdf": "node build-pdf.mjs",
+    "pdf:draft": "node build-pdf.mjs --draft",
+    "screenshots": "node capture-screenshots.mjs"
+  },
+  "dependencies": {
+    "marked": "15.0.2",
+    "puppeteer": "23.9.0"
+  }
+}

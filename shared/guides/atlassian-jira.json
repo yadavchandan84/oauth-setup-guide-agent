@@ -1,0 +1,152 @@
+{
+  "schemaVersion": 1,
+  "slug": "atlassian-jira",
+  "aliases": ["jira", "atlassian", "confluence", "atlassianjira", "jiracloud"],
+  "app": {
+    "name": "Atlassian Jira (OAuth 2.0 3LO)",
+    "website": "https://developer.atlassian.com",
+    "category": "Project Management",
+    "brand": { "color": "#0052CC", "monogram": "JR" }
+  },
+  "summary": "Atlassian's OAuth 2.0 (3LO) lets an external app access Jira or Confluence Cloud APIs on a user's behalf. You create and enable an OAuth 2.0 integration in the developer console, choose an account-level or resource-level grant, add scopes and a callback URL, then run the authorization code flow. No mandatory review is needed to build and distribute a 3LO app; listing in the Atlassian Marketplace is optional. Atlassian explicitly warns against instructing customers to create individual 3LO apps rather than shipping one distributable app.",
+  "oauthAvailability": {
+    "status": "supported",
+    "note": "OAuth 2.0 (3LO) authorization code flow for Jira/Confluence Cloud. Build a single distributable app rather than per-customer apps.",
+    "alternatives": ["Forge or Connect apps for in-product Marketplace integrations"]
+  },
+  "difficulty": { "level": "Moderate", "reason": "Console setup and the grant-type choice add some complexity, but there is no mandatory review." },
+  "timeEstimate": {
+    "handsOn": { "min": 1, "max": 2, "unit": "hours" },
+    "approvalWait": { "min": 0, "max": 0, "unit": "minutes", "note": "No review to build or distribute a 3LO app; Marketplace listing is optional." },
+    "criticalPath": "Creating and enabling the OAuth 2.0 integration and wiring the authorization code flow."
+  },
+  "review": {
+    "required": false,
+    "requiredWhen": "No review required for a 3LO app. Review applies only to optional Atlassian Marketplace listing.",
+    "types": ["optional-listing"],
+    "stages": []
+  },
+  "prerequisites": [
+    { "item": "An Atlassian developer console account", "detail": "3LO apps are created and managed in the developer console.", "actor": "human" },
+    { "item": "A callback URL", "detail": "Configured on the app; must match the authorization request.", "actor": "assist" }
+  ],
+  "steps": [
+    {
+      "title": "Create an OAuth 2.0 integration",
+      "detail": "In the developer console, choose Create and then OAuth 2.0 integration. Enter an app name and choose the OAuth 2.0 (3LO) grant type.",
+      "consoleUrl": "https://developer.atlassian.com/cloud/jira/platform/oauth-2-3lo-apps/",
+      "actor": "human",
+      "estimate": "15 min"
+    },
+    {
+      "title": "Choose account-level or resource-level grant",
+      "detail": "Account-level consent can cover multiple sites where your app is installed; resource-level consent is limited to the specific site(s) the user selects. Pick based on how your app spans sites.",
+      "consoleUrl": "https://developer.atlassian.com/cloud/jira/platform/oauth-2-3lo-apps/",
+      "actor": "assist",
+      "estimate": "10 min"
+    },
+    {
+      "title": "Enable OAuth 2.0 (3LO), add scopes and callback URL",
+      "detail": "Under Authorization, enable OAuth 2.0 (3LO). Add the Jira/Confluence scopes your app needs and set the callback URL.",
+      "consoleUrl": "https://developer.atlassian.com/cloud/jira/platform/scopes-for-oauth-2-3LO-and-forge-apps/",
+      "actor": "assist",
+      "estimate": "20 min",
+      "gotcha": "Building one distributable 3LO app is required by Atlassian's security requirements; instructing customers to create their own 3LO apps is non-compliant."
+    },
+    {
+      "title": "Implement the authorization code flow",
+      "detail": "Direct the user to Atlassian's authorization URL with your client_id, scopes, and callback, exchange the returned code for an access token at the token URL, then call the Jira API with the token until it expires or is revoked.",
+      "consoleUrl": "https://developer.atlassian.com/cloud/jira/platform/oauth-2-3lo-apps/",
+      "actor": "agent",
+      "estimate": "45 min"
+    }
+  ],
+  "redirectUris": {
+    "notes": [
+      "The callback URL is configured on the app and must match the authorization request.",
+      "Use the state parameter for CSRF protection in the authorization request."
+    ],
+    "examples": ["https://app.example.com/atlassian/callback"]
+  },
+  "scopes": {
+    "recommended": [
+      { "scope": "read:jira-work", "purpose": "Read Jira issues, projects, and related data." },
+      { "scope": "write:jira-work", "purpose": "Create and update Jira issues." },
+      { "scope": "read:jira-user", "purpose": "Read Jira user information." },
+      { "scope": "offline_access", "purpose": "Receive a refresh token for long-lived access." }
+    ],
+    "sensitive": [
+      { "scope": "manage:jira-configuration", "level": "admin", "consequence": "Administers Jira configuration; request only for admin tooling." },
+      { "scope": "write:jira-work", "level": "sensitive", "consequence": "Creates and modifies issues on the user's behalf." }
+    ],
+    "notes": [
+      "Granular scopes are recommended over classic scopes; request only what each feature needs.",
+      "Include offline_access to obtain a refresh token."
+    ]
+  },
+  "blockers": [
+    {
+      "title": "Non-compliant per-customer 3LO apps",
+      "symptom": "Customers are asked to create their own 3LO apps or API tokens.",
+      "cause": "This pattern violates Atlassian's security requirements and acceptable use policy.",
+      "resolution": "Ship a single distributable 3LO app and transition customers off custom 3LO apps/API tokens.",
+      "actor": "human"
+    },
+    {
+      "title": "Token works for the wrong site",
+      "symptom": "API calls fail or target an unexpected site.",
+      "cause": "A resource-level grant limits the token to the specific site(s) the user selected.",
+      "resolution": "Use an account-level grant if the app needs to span sites, or resolve the accessible resources for the token.",
+      "actor": "agent"
+    },
+    {
+      "title": "callback URL mismatch",
+      "symptom": "Authorization fails on the redirect step.",
+      "cause": "The callback URL does not match the one configured on the app.",
+      "resolution": "Set the exact callback URL on the app and in the authorization request.",
+      "actor": "agent"
+    }
+  ],
+  "agentHandoff": {
+    "agentCan": [
+      "Implement the authorization code flow and token refresh",
+      "Resolve accessible resources and call the Jira API",
+      "Wire scopes and the callback route"
+    ],
+    "humanMust": [
+      "Create and enable the OAuth 2.0 integration in the developer console",
+      "Choose the grant type and hold the client credentials"
+    ],
+    "handoffPoints": [
+      "A human creates and enables the integration; the agent implements the 3LO flow."
+    ]
+  },
+  "confidence": {
+    "difficulty": { "level": "verified", "note": "3LO setup documented; no mandatory review.", "sourceRefs": [0] },
+    "timeEstimate": { "level": "community", "note": "Hands-on effort is an author estimate; no approval wait.", "sourceRefs": [0] },
+    "review": { "level": "community", "note": "No review to build/distribute; Marketplace listing is optional and not detailed on this page.", "sourceRefs": [0] },
+    "prerequisites": { "level": "verified", "note": "Developer console and callback requirements from the 3LO docs.", "sourceRefs": [0] },
+    "steps": { "level": "verified", "note": "Create/enable integration and grant-type choice from the 3LO docs.", "sourceRefs": [0] },
+    "redirectUris": { "level": "verified", "note": "Callback URL handling from the 3LO docs.", "sourceRefs": [0] },
+    "scopes": { "level": "verified", "note": "Scope guidance from the scopes-for-OAuth-2-3LO reference.", "sourceRefs": [1] },
+    "blockers": { "level": "verified", "note": "Per-customer-app non-compliance and grant scoping documented in the 3LO docs.", "sourceRefs": [0] },
+    "agentHandoff": { "level": "community", "note": "Author judgment on the agent/human split.", "sourceRefs": [0] }
+  },
+  "verification": {
+    "lastVerified": "2026-10-20",
+    "sources": [
+      { "url": "https://developer.atlassian.com/cloud/jira/platform/oauth-2-3lo-apps/", "title": "OAuth 2.0 (3LO) apps - Atlassian Developer", "kind": "official", "accessed": "2026-10-20" },
+      { "url": "https://developer.atlassian.com/cloud/jira/platform/scopes-for-oauth-2-3LO-and-forge-apps/", "title": "Scopes for OAuth 2.0 (3LO) and Forge apps - Atlassian Developer", "kind": "official", "accessed": "2026-10-20" }
+    ],
+    "checked": [
+      "Confirmed OAuth 2.0 (3LO) creation in the developer console and account-level vs resource-level grants.",
+      "Confirmed Atlassian requires a single distributable 3LO app (per-customer 3LO apps are non-compliant)."
+    ],
+    "corrected": [],
+    "uncertain": []
+  },
+  "generatedBy": "curated",
+  "generatedAt": "2026-10-20T00:00:00Z",
+  "model": null,
+  "query": null
+}

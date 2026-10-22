@@ -1,0 +1,156 @@
+{
+  "schemaVersion": 1,
+  "slug": "stripe-connect",
+  "aliases": ["stripe", "stripeconnect", "stripeoauth"],
+  "app": {
+    "name": "Stripe Connect",
+    "website": "https://stripe.com",
+    "category": "Payments",
+    "brand": { "color": "#635BFF", "monogram": "S" }
+  },
+  "summary": "Stripe Connect's OAuth flow lets a platform link existing Stripe accounts to itself: you register redirect URIs in platform settings, send users to connect.stripe.com/oauth/authorize, and exchange the returned code for the connected account's credentials. The OAuth wiring is modest. The real variable is the connected account's own onboarding and verification, which can take from minutes to a few days depending on the account and country.",
+  "oauthAvailability": {
+    "status": "supported",
+    "note": "Connect OAuth links Standard accounts to a platform. read_write and read_only scopes control access level.",
+    "alternatives": ["Connect onboarding via account links for platform-managed accounts"]
+  },
+  "difficulty": { "level": "Moderate", "reason": "OAuth wiring is simple, but connected-account onboarding and verification add platform-specific complexity." },
+  "timeEstimate": {
+    "handsOn": { "min": 2, "max": 6, "unit": "hours" },
+    "approvalWait": { "min": 0, "max": 3, "unit": "days", "note": "No OAuth approval; wait reflects connected-account verification/payouts enablement." },
+    "criticalPath": "Connected-account verification (identity and payout enablement) dominates any wait, not the OAuth step."
+  },
+  "review": {
+    "required": false,
+    "requiredWhen": "No Stripe review of the OAuth integration itself. Each connected account completes its own onboarding/verification.",
+    "types": ["platform-onboarding"],
+    "stages": [
+      { "name": "Connected account onboarding", "actor": "human", "duration": { "min": 0, "max": 3, "unit": "days" }, "description": "The connecting business completes Stripe's account form and verification; payouts enable once requirements are satisfied." }
+    ]
+  },
+  "prerequisites": [
+    { "item": "A Stripe platform account with Connect enabled", "detail": "The platform's client_id and redirect URIs live in Connect settings.", "actor": "human" },
+    { "item": "Registered redirect URI(s)", "detail": "Stripe only redirects to predefined URIs; live mode requires HTTPS.", "actor": "assist" }
+  ],
+  "steps": [
+    {
+      "title": "Enable Connect and register redirect URIs",
+      "detail": "In your platform settings, enable Connect and add one or more redirect URIs. You can define multiple to customize where different users land.",
+      "consoleUrl": "https://docs.stripe.com/connect/oauth-standard-accounts",
+      "actor": "human",
+      "estimate": "20 min"
+    },
+    {
+      "title": "Send the user to the authorize endpoint",
+      "detail": "Redirect the user to https://connect.stripe.com/oauth/authorize with response_type=code, your client_id, scope (read_write or read_only), and optionally redirect_uri and state. You may prefill account fields with stripe_user[...] parameters.",
+      "consoleUrl": "https://docs.stripe.com/connect/oauth-reference",
+      "actor": "agent",
+      "estimate": "45 min",
+      "gotcha": "A supplied redirect_uri must exactly match one of the comma-separated redirect URIs in platform settings; otherwise Stripe uses the first configured URI."
+    },
+    {
+      "title": "Exchange the code for connected-account credentials",
+      "detail": "On the callback, exchange the authorization code with Stripe to receive the connected account's ID and access token. Validate the returned state against the value you sent.",
+      "consoleUrl": "https://docs.stripe.com/connect/oauth-reference",
+      "actor": "agent",
+      "estimate": "30 min"
+    },
+    {
+      "title": "Guide the connected account through onboarding",
+      "detail": "New accounts complete Stripe's account form and verification. Payouts enable once Stripe's requirements are met; this is where any wait occurs.",
+      "consoleUrl": "https://docs.stripe.com/connect/oauth-standard-accounts",
+      "actor": "human",
+      "estimate": "varies"
+    }
+  ],
+  "redirectUris": {
+    "notes": [
+      "Stripe redirects only to predefined URIs registered in platform settings.",
+      "Live mode redirect URIs must use HTTPS; a supplied redirect_uri must match exactly."
+    ],
+    "examples": ["https://platform.example.com/stripe/oauth/callback", "https://sub1.example.com/connect/return"]
+  },
+  "scopes": {
+    "recommended": [
+      { "scope": "read_write", "purpose": "Create charges, customers, and other resources on the connected account." },
+      { "scope": "read_only", "purpose": "Read-only access; the only option available to extensions." }
+    ],
+    "sensitive": [
+      { "scope": "read_write", "level": "privileged", "consequence": "Full API access on the connected account; data created is visible to the account owner and other connected platforms." }
+    ],
+    "notes": [
+      "Default scope is read_only. From June 2021, platforms using read_write cannot connect to accounts controlled by another platform.",
+      "read_only can only be specified for extensions."
+    ]
+  },
+  "blockers": [
+    {
+      "title": "Redirect URI mismatch",
+      "symptom": "OAuth redirect fails or lands on an unexpected URI.",
+      "cause": "The supplied redirect_uri does not exactly match a registered URI, so Stripe falls back to the first one.",
+      "resolution": "Register the exact redirect URI (HTTPS in live mode) in platform settings and pass the matching value.",
+      "actor": "agent"
+    },
+    {
+      "title": "Cannot connect an account controlled by another platform",
+      "symptom": "read_write OAuth connection to a Standard account is rejected.",
+      "cause": "Since June 2021, read_write platforms can't connect to accounts already controlled by another platform.",
+      "resolution": "Use read_only where appropriate, or have the account use an uncontrolled Standard account.",
+      "actor": "human"
+    },
+    {
+      "title": "Payouts blocked pending verification",
+      "symptom": "The connected account is linked but cannot receive payouts.",
+      "cause": "The account has outstanding onboarding/verification requirements.",
+      "resolution": "Have the account owner complete Stripe's account form and submit required documents.",
+      "actor": "human"
+    }
+  ],
+  "agentHandoff": {
+    "agentCan": [
+      "Implement the authorize redirect and code exchange",
+      "Validate state and store the connected account ID and token",
+      "Prefill onboarding fields with known user data"
+    ],
+    "humanMust": [
+      "Enable Connect and register redirect URIs on the platform account",
+      "Complete (or have each business complete) account onboarding and verification"
+    ],
+    "handoffPoints": [
+      "Agent wires the OAuth linkage; the connected business owns its onboarding and verification."
+    ]
+  },
+  "confidence": {
+    "difficulty": { "level": "verified", "note": "OAuth flow documented; no Stripe review of the integration itself.", "sourceRefs": [0, 1] },
+    "timeEstimate": { "level": "community", "note": "Onboarding wait varies by account/country; hands-on is an estimate.", "sourceRefs": [1] },
+    "review": { "level": "community", "note": "No integration review; connected-account onboarding is the only gate.", "sourceRefs": [1] },
+    "prerequisites": { "level": "verified", "note": "Platform settings and redirect URI requirements from the OAuth reference.", "sourceRefs": [0] },
+    "steps": { "level": "verified", "note": "Authorize and exchange steps follow the OAuth reference.", "sourceRefs": [0, 1] },
+    "redirectUris": { "level": "verified", "note": "Predefined-URI and HTTPS rules from the OAuth reference.", "sourceRefs": [0] },
+    "scopes": { "level": "verified", "note": "read_write/read_only semantics and June-2021 change from the OAuth reference.", "sourceRefs": [0] },
+    "blockers": { "level": "verified", "note": "Redirect and controlled-account constraints documented in the OAuth reference.", "sourceRefs": [0] },
+    "agentHandoff": { "level": "community", "note": "Author judgment on the agent/human split.", "sourceRefs": [1] }
+  },
+  "verification": {
+    "lastVerified": "2026-10-20",
+    "sources": [
+      { "url": "https://docs.stripe.com/connect/oauth-reference", "title": "Connect OAuth reference - Stripe", "kind": "official", "accessed": "2026-10-20" },
+      { "url": "https://docs.stripe.com/connect/oauth-standard-accounts", "title": "OAuth for Standard accounts - Stripe", "kind": "official", "accessed": "2026-10-20" }
+    ],
+    "checked": [
+      "Confirmed authorize endpoint, parameters, and read_write/read_only scopes.",
+      "Confirmed redirect_uri must match a predefined URI and live mode requires HTTPS.",
+      "Confirmed June-2021 restriction on read_write connecting to platform-controlled accounts."
+    ],
+    "corrected": [
+      "Stripe docs moved from stripe.com/docs to docs.stripe.com; cited the current docs.stripe.com URLs."
+    ],
+    "uncertain": [
+      "Connected-account verification/payout-enablement durations vary and are not fixed; treated as community-reported."
+    ]
+  },
+  "generatedBy": "curated",
+  "generatedAt": "2026-10-20T00:00:00Z",
+  "model": null,
+  "query": null
+}

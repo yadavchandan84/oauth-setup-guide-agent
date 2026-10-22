@@ -1,0 +1,9 @@
+{
+  "private": true,
+  "scripts": {
+    "sync": "node scripts/sync-shared.mjs",
+    "check:links": "node scripts/check-links.mjs",
+    "pdf": "npm --prefix submission run pdf",
+    "screenshots": "npm --prefix submission run screenshots"
+  }
+}

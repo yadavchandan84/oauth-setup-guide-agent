@@ -114,7 +114,10 @@ No Loom/video section. A companion `npm run screenshots` captures the screenshot
 ### Schema and content
 1. `npm test` in `backend/` validates all 14 curated guides against `GuideSchema`: unique slugs, ≥2 sources each with ≥1 `official`, every URL `https://`, valid `lastVerified` date, and steps with an `actor` in {agent, human, assist}.
 2. The curated set contains ≥1 guide of each difficulty level, and the GitHub, Google Workspace, and Shopify guides have difficulties Easy, Very Hard, and Hard respectively.
-3. `node scripts/check-links.mjs` reports every curated source URL. Any URL failing (non-2xx/3xx after redirects, excluding documented 403 bot-blocks) is removed or replaced before submission. Any section citing only failed URLs is downgraded below `verified`.
+3. `node scripts/check-links.mjs` reports every curated URL. The report has one result per collected URL, and it exits 1 if any URL is missing. Each URL is classified `ok`, `redirected`, `blocked` or `broken`:
+   - Any `broken` URL (non-2xx after redirects, network error or timeout, excluding documented 401/403/429 bot-blocks) is removed or replaced before submission.
+   - Any `redirected` URL (2xx, but its final URL differs after normalization) is replaced with its final URL once the author confirms that page still supports the claim.
+   - Any section citing only failed URLs is downgraded below `verified`.
 
 ### Backend
 4. `GET /api/health` returns 200 JSON with `status: "ok"`, `store`, `llmConfigured`, and `searchConfigured`, with no API keys set.
@@ -146,7 +149,7 @@ No Loom/video section. A companion `npm run screenshots` captures the screenshot
 22. Print preview of a guide page hides nav and 3D, uses a light background, and shows all blocker content expanded.
 
 ### Deployment and PDF
-23. `render.yaml` declares a web service with build `cd backend && npm ci --include=dev && npm run build`, start `cd backend && npm start`, `healthCheckPath: /api/health`, and every env var name from `backend/.env.example` (secrets as `sync: false`).
+23. `render.yaml` declares a web service with build `cd backend && npm ci --include=dev && npm run build`, start `cd backend && npm start`, `healthCheckPath: /api/health`, and every env var name from `backend/.env.example` (secrets as `sync: false`). This is enforced by a backend unit test.
 24. `npm run pdf` on Windows produces `submission/Composio_OAuth_Guide_Agent_Submission.pdf` < 10 MB. It contains all FR12 sections, an inline SVG diagram, the three sample excerpts, and ≥4 screenshots. It mentions no Loom/video. It warns in the console if `links.config.json` still holds placeholders.
 25. No file in the repo contains a real API key. `git grep -E "sk-[A-Za-z0-9]{20}|tvly-[A-Za-z0-9]{10}"` returns nothing.
 

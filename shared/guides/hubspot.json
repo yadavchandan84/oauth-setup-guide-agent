@@ -1,0 +1,149 @@
+{
+  "schemaVersion": 1,
+  "slug": "hubspot",
+  "aliases": ["hubspot", "hubspotapp", "hubspotoauth"],
+  "app": {
+    "name": "HubSpot",
+    "website": "https://www.hubspot.com",
+    "category": "CRM",
+    "brand": { "color": "#FF7A59", "monogram": "HS" }
+  },
+  "summary": "HubSpot supports the standard OAuth 2.0 authorization code flow: build the authorization URL with your client ID and scopes, let the user consent, then exchange the code at HubSpot's token endpoint for access and refresh tokens. There is no mandatory review to use OAuth; a public app only needs review to be listed in the App Marketplace. Note the docs now live under a legacy-apps path, reflecting HubSpot's move toward a newer developer-platform (projects) flow.",
+  "oauthAvailability": {
+    "status": "supported",
+    "note": "HubSpot supports the OAuth 2.0 authorization code grant. Marketplace listing is optional; using OAuth needs no review.",
+    "alternatives": ["Private app access tokens for single-account automations without the OAuth flow"]
+  },
+  "difficulty": { "level": "Moderate", "reason": "Standard OAuth flow, but scope/product gating and the legacy-vs-new-platform choice add moderate complexity." },
+  "timeEstimate": {
+    "handsOn": { "min": 1, "max": 3, "unit": "hours" },
+    "approvalWait": { "min": 0, "max": 0, "unit": "minutes", "note": "No review to use OAuth; Marketplace listing adds a separate optional review." },
+    "criticalPath": "Building and testing the OAuth flow is the only required work for non-listed apps."
+  },
+  "review": {
+    "required": false,
+    "requiredWhen": "No review is required to use OAuth. Review applies only when listing a public app in the HubSpot App Marketplace.",
+    "types": ["optional-listing"],
+    "stages": []
+  },
+  "prerequisites": [
+    { "item": "A HubSpot developer account", "detail": "Create the app under a developer account.", "actor": "human" },
+    { "item": "An app associated with the developer account", "detail": "Provides the client ID and secret.", "actor": "assist" },
+    { "item": "A HubSpot account to install into", "detail": "Use an existing or test account for the install flow.", "actor": "human" }
+  ],
+  "steps": [
+    {
+      "title": "Create an app under a developer account",
+      "detail": "Create an app in your HubSpot developer account and note the client ID and client secret from the app's settings page.",
+      "consoleUrl": "https://developers.hubspot.com/docs/apps/legacy-apps/authentication/oauth-quickstart-guide",
+      "actor": "human",
+      "estimate": "15 min"
+    },
+    {
+      "title": "Build the authorization URL",
+      "detail": "Construct the authorization URL with client_id, scope (URL-encoded, space-separated), and redirect_uri. Use optional_scope for scopes that should be dropped if the portal lacks the product, and state for CSRF protection.",
+      "consoleUrl": "https://developers.hubspot.com/docs/apps/legacy-apps/authentication/oauth-quickstart-guide",
+      "actor": "agent",
+      "estimate": "30 min",
+      "gotcha": "The installing user must have access to all requested scopes, or installation fails and they are sent to an error page; a Super Admin may need to install."
+    },
+    {
+      "title": "Handle the redirect and exchange the code",
+      "detail": "On the callback, HubSpot appends a code query parameter. Exchange it with a URL-form-encoded POST to https://api.hubapi.com/oauth/v1/token for an access token and refresh token.",
+      "consoleUrl": "https://developers.hubspot.com/docs/apps/legacy-apps/authentication/working-with-oauth",
+      "actor": "agent",
+      "estimate": "30 min"
+    },
+    {
+      "title": "Use and refresh tokens",
+      "detail": "Send the access token as a bearer token in the Authorization header. When it expires, POST the refresh_token to the same token endpoint for a new access token.",
+      "consoleUrl": "https://developers.hubspot.com/docs/apps/legacy-apps/authentication/working-with-oauth",
+      "actor": "agent",
+      "estimate": "20 min"
+    }
+  ],
+  "redirectUris": {
+    "notes": [
+      "The redirect_uri must match the one registered on the app; production apps require HTTPS.",
+      "Use the state parameter to carry and validate user state across the redirect."
+    ],
+    "examples": ["https://app.example.com/hubspot/oauth-callback"]
+  },
+  "scopes": {
+    "recommended": [
+      { "scope": "oauth", "purpose": "Base scope required for the OAuth flow." },
+      { "scope": "crm.objects.contacts.read", "purpose": "Read CRM contact records." },
+      { "scope": "crm.objects.contacts.write", "purpose": "Create and update CRM contacts." }
+    ],
+    "sensitive": [
+      { "scope": "crm.objects.deals.write", "level": "sensitive", "consequence": "Writes deal records; ensure the installing user has deal access or installation fails." },
+      { "scope": "automation", "level": "sensitive", "consequence": "Access to workflows/automation; requires the portal to have the corresponding product." }
+    ],
+    "notes": [
+      "Scopes are URL-encoded and space-separated in the authorization URL.",
+      "Use optional_scope for product-gated scopes so they drop gracefully when a portal lacks the product."
+    ]
+  },
+  "blockers": [
+    {
+      "title": "Installation fails on the consent screen",
+      "symptom": "The user is sent to an error page instead of granting access.",
+      "cause": "The installing user lacks access to one or more requested scopes.",
+      "resolution": "Have a Super Admin install the app, or request narrower scopes the user can grant.",
+      "actor": "human"
+    },
+    {
+      "title": "Token exchange returns an error",
+      "symptom": "Exchanging the authorization code fails.",
+      "cause": "Mismatched redirect_uri, wrong grant_type, or incorrect client credentials in the POST body.",
+      "resolution": "Ensure grant_type=authorization_code, the redirect_uri matches the authorize request, and the client ID/secret are correct.",
+      "actor": "agent"
+    }
+  ],
+  "agentHandoff": {
+    "agentCan": [
+      "Build the authorization URL and handle the callback",
+      "Implement the token exchange and refresh against api.hubapi.com",
+      "Draft the scope list including optional_scope handling"
+    ],
+    "humanMust": [
+      "Create the app and hold the client secret",
+      "Ensure a user with the required scopes (often a Super Admin) installs the app"
+    ],
+    "handoffPoints": [
+      "A human creates the app and installs it; the agent implements the OAuth flow and token lifecycle."
+    ]
+  },
+  "confidence": {
+    "difficulty": { "level": "verified", "note": "Standard OAuth flow; no review to use OAuth per the quickstart.", "sourceRefs": [0] },
+    "timeEstimate": { "level": "community", "note": "Hands-on effort is an author estimate; no approval wait.", "sourceRefs": [0] },
+    "review": { "level": "community", "note": "Marketplace listing review is optional; not detailed on the OAuth pages.", "sourceRefs": [0] },
+    "prerequisites": { "level": "verified", "note": "Developer account, app, and install-account prerequisites from the quickstart.", "sourceRefs": [0] },
+    "steps": { "level": "verified", "note": "Authorization URL, token exchange, and refresh from the OAuth docs.", "sourceRefs": [0, 1] },
+    "redirectUris": { "level": "verified", "note": "redirect_uri and state handling from the quickstart.", "sourceRefs": [0] },
+    "scopes": { "level": "verified", "note": "scope/optional_scope URL encoding from the quickstart.", "sourceRefs": [0] },
+    "blockers": { "level": "verified", "note": "Scope-access install failure documented in the quickstart.", "sourceRefs": [0] },
+    "agentHandoff": { "level": "community", "note": "Author judgment on the agent/human split.", "sourceRefs": [0] }
+  },
+  "verification": {
+    "lastVerified": "2026-10-20",
+    "sources": [
+      { "url": "https://developers.hubspot.com/docs/apps/legacy-apps/authentication/oauth-quickstart-guide", "title": "OAuth Quickstart Guide - HubSpot docs", "kind": "official", "accessed": "2026-10-20" },
+      { "url": "https://developers.hubspot.com/docs/apps/legacy-apps/authentication/working-with-oauth", "title": "Working with OAuth - HubSpot docs", "kind": "official", "accessed": "2026-10-20" }
+    ],
+    "checked": [
+      "Confirmed the authorization code flow, authorization URL parameters, and token endpoint (api.hubapi.com/oauth/v1/token).",
+      "Confirmed install fails if the user lacks access to a requested scope (Super Admin may be required)."
+    ],
+    "corrected": [
+      "HubSpot OAuth docs now live under the legacy-apps/ path, reflecting the move toward the newer developer-platform (projects) flow; cited the current legacy-apps URLs."
+    ],
+    "uncertain": [
+      "Whether a brand-new app should use the legacy public-app flow or the newer projects flow is not settled on these pages; the OAuth mechanics shown apply to the legacy public-app flow."
+    ]
+  },
+  "generatedBy": "curated",
+  "generatedAt": "2026-10-20T00:00:00Z",
+  "model": null,
+  "query": null
+}

@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 460" width="900" height="460" role="img" aria-label="System architecture diagram">
+  <style>
+    .box { fill: #ffffff; stroke: #334155; stroke-width: 1.5; rx: 10; }
+    .accent { fill: #eef2ff; stroke: #4f46e5; }
+    .ext { fill: #f1f5f9; stroke: #64748b; }
+    .title { font: 600 15px "Segoe UI", Arial, sans-serif; fill: #0f172a; }
+    .sub { font: 400 11px "Segoe UI", Arial, sans-serif; fill: #475569; }
+    .edge { stroke: #64748b; stroke-width: 1.5; fill: none; marker-end: url(#arrow); }
+    .edgelabel { font: 500 10px "Segoe UI", Arial, sans-serif; fill: #4f46e5; }
+    .zone { font: 600 11px "Segoe UI", Arial, sans-serif; fill: #94a3b8; letter-spacing: 0.08em; }
+  </style>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#64748b" />
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="900" height="460" fill="#ffffff" />
+
+  <!-- Zone labels -->
+  <text x="150" y="30" class="zone" text-anchor="middle">CLIENT</text>
+  <text x="450" y="30" class="zone" text-anchor="middle">BACKEND (RENDER)</text>
+  <text x="780" y="30" class="zone" text-anchor="middle">EXTERNAL</text>
+
+  <!-- Browser -->
+  <rect x="40" y="130" width="200" height="90" rx="10" class="box accent" />
+  <text x="140" y="165" class="title" text-anchor="middle">Browser SPA</text>
+  <text x="140" y="186" class="sub" text-anchor="middle">React + Vite on Vercel</text>
+  <text x="140" y="203" class="sub" text-anchor="middle">Bundles 14 curated guides</text>
+
+  <!-- Express API -->
+  <rect x="350" y="120" width="210" height="110" rx="10" class="box accent" />
+  <text x="455" y="152" class="title" text-anchor="middle">Express Agent API</text>
+  <text x="455" y="173" class="sub" text-anchor="middle">/api/health · /api/guides</text>
+  <text x="455" y="190" class="sub" text-anchor="middle">/api/generate (SSE)</text>
+  <text x="455" y="210" class="sub" text-anchor="middle">rate limit · concurrency · CORS</text>
+
+  <!-- Pipeline -->
+  <rect x="350" y="275" width="210" height="100" rx="10" class="box" />
+  <text x="455" y="304" class="title" text-anchor="middle">Agent pipeline</text>
+  <text x="455" y="324" class="sub" text-anchor="middle">resolve → search → read →</text>
+  <text x="455" y="340" class="sub" text-anchor="middle">draft → verify → assemble</text>
+  <text x="455" y="358" class="sub" text-anchor="middle">post-process + schema validate</text>
+
+  <!-- Tavily -->
+  <rect x="680" y="70" width="190" height="66" rx="10" class="box ext" />
+  <text x="775" y="100" class="title" text-anchor="middle">Tavily</text>
+  <text x="775" y="120" class="sub" text-anchor="middle">doc search + extract</text>
+
+  <!-- OpenAI -->
+  <rect x="680" y="165" width="190" height="66" rx="10" class="box ext" />
+  <text x="775" y="195" class="title" text-anchor="middle">OpenAI</text>
+  <text x="775" y="215" class="sub" text-anchor="middle">structured draft + verify</text>
+
+  <!-- Store -->
+  <rect x="680" y="300" width="190" height="66" rx="10" class="box ext" />
+  <text x="775" y="330" class="title" text-anchor="middle">Store</text>
+  <text x="775" y="350" class="sub" text-anchor="middle">Upstash Redis / file</text>
+
+  <!-- Edges -->
+  <path class="edge" d="M240 165 L350 160" />
+  <text x="295" y="150" class="edgelabel" text-anchor="middle">HTTPS</text>
+
+  <path class="edge" d="M350 200 L240 195" />
+  <text x="295" y="218" class="edgelabel" text-anchor="middle">SSE stream</text>
+
+  <path class="edge" d="M455 230 L455 275" />
+  <text x="470" y="258" class="edgelabel" text-anchor="start">run</text>
+
+  <path class="edge" d="M560 310 L680 110" />
+  <text x="628" y="200" class="edgelabel" text-anchor="middle">search</text>
+
+  <path class="edge" d="M560 320 L680 200" />
+  <text x="628" y="272" class="edgelabel" text-anchor="middle">draft/verify</text>
+
+  <path class="edge" d="M560 335 L680 333" />
+  <text x="628" y="325" class="edgelabel" text-anchor="middle">save/get</text>
+</svg>

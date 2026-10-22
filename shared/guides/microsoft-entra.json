@@ -1,0 +1,170 @@
+{
+  "schemaVersion": 1,
+  "slug": "microsoft-entra",
+  "aliases": ["microsoft", "azure", "azuread", "entra", "msgraph", "microsoftgraph", "microsoftentraid", "outlook", "office365", "microsoft365", "msentra"],
+  "app": {
+    "name": "Microsoft Entra ID / Graph",
+    "website": "https://learn.microsoft.com/en-us/",
+    "category": "Identity",
+    "brand": { "color": "#0078D4", "monogram": "MS" }
+  },
+  "summary": "Registering an app in Microsoft Entra ID (formerly Azure AD) to call Microsoft Graph is quick: create the registration, add a redirect URI, and configure API permissions. The hard part is distribution. A multitenant app that requests more than basic sign-in is effectively blocked from new tenants unless its publisher is verified, and many Graph permissions need a tenant admin's consent before users in that tenant can use them. Plan for publisher verification and per-tenant admin consent.",
+  "oauthAvailability": {
+    "status": "supported",
+    "note": "Entra ID uses OAuth 2.0 and OpenID Connect. Multitenant apps need publisher verification; many permissions need admin consent.",
+    "alternatives": ["Single-tenant registration for an app used only within one organization"]
+  },
+  "difficulty": { "level": "Hard", "reason": "Multitenant distribution needs publisher verification and per-tenant admin consent for most non-basic permissions." },
+  "timeEstimate": {
+    "handsOn": { "min": 2, "max": 4, "unit": "hours" },
+    "approvalWait": { "min": 1, "max": 5, "unit": "days", "note": "Publisher verification is fast once CPP prerequisites are met; per-tenant admin consent is open-ended." },
+    "criticalPath": "Publisher verification prerequisites plus per-tenant admin consent gate multitenant distribution."
+  },
+  "review": {
+    "required": true,
+    "requiredWhen": "Effectively required for multitenant apps requesting permissions beyond basic sign-in: risk-based step-up consent blocks unverified publishers, and admin consent is needed per tenant for many Graph permissions.",
+    "types": ["publisher-verification", "admin-consent"],
+    "stages": [
+      { "name": "Publisher verification", "actor": "human", "duration": { "min": 1, "max": 5, "unit": "days", "note": "Minutes once CPP/Partner One ID prerequisites are already met." }, "description": "Associate a verified Microsoft AI Cloud Partner Program (CPP) Partner One ID with the app registration to earn the blue verified badge." },
+      { "name": "Per-tenant admin consent", "actor": "human", "duration": { "min": 0, "max": 0, "unit": "days", "note": "Open-ended; depends on each tenant's admin." }, "description": "A tenant admin must grant consent for many Graph permissions before users in that tenant can use the app." }
+    ]
+  },
+  "prerequisites": [
+    { "item": "A Microsoft Entra tenant", "detail": "The app must be registered using a work or school account; Microsoft-account registrations can't be publisher verified.", "actor": "human" },
+    { "item": "A verified publisher domain on the app", "detail": "Required for publisher verification; it can't be *.onmicrosoft.com.", "actor": "human" },
+    { "item": "A verified CPP (Partner One ID) account for multitenant distribution", "detail": "The CPP account must be the partner global account, verified, and the initiator must hold the required Entra and Partner Center roles.", "actor": "human" }
+  ],
+  "steps": [
+    {
+      "title": "Register the application in Entra ID",
+      "detail": "In the Microsoft Entra admin center, register a new application. Choose single-tenant or multitenant supported account types based on your distribution plan.",
+      "consoleUrl": "https://learn.microsoft.com/en-us/entra/identity-platform/quickstart-register-app",
+      "actor": "assist",
+      "estimate": "20 min"
+    },
+    {
+      "title": "Add a redirect URI and credentials",
+      "detail": "Add a platform and redirect URI, and create a client secret or certificate for confidential clients.",
+      "consoleUrl": "https://learn.microsoft.com/en-us/entra/identity-platform/quickstart-register-app",
+      "actor": "assist",
+      "estimate": "15 min"
+    },
+    {
+      "title": "Configure Microsoft Graph API permissions",
+      "detail": "Add the delegated or application permissions your app needs on Microsoft Graph. Note which permissions require admin consent.",
+      "consoleUrl": "https://learn.microsoft.com/en-us/entra/identity-platform/quickstart-register-app",
+      "actor": "human",
+      "estimate": "30 min",
+      "gotcha": "Permissions beyond basic sign-in and read-user-profile trigger step-up consent that blocks unverified multitenant publishers."
+    },
+    {
+      "title": "Complete publisher verification (multitenant)",
+      "detail": "Associate a verified CPP Partner One ID with the app registration so the blue verified badge appears on the consent prompt. The initiator must have Application/Cloud Application Administrator in Entra and a qualifying Partner Center role, and sign in with MFA.",
+      "consoleUrl": "https://learn.microsoft.com/en-us/entra/identity-platform/publisher-verification-overview",
+      "actor": "human",
+      "estimate": "ongoing"
+    },
+    {
+      "title": "Obtain admin consent per tenant",
+      "detail": "For permissions that require it, have each customer tenant's admin grant consent (e.g. via the admin consent flow) before users in that tenant can use the app.",
+      "consoleUrl": "https://learn.microsoft.com/en-us/entra/identity-platform/publisher-verification-overview",
+      "actor": "human",
+      "estimate": "varies"
+    }
+  ],
+  "redirectUris": {
+    "notes": [
+      "Redirect URIs are configured per platform (web, SPA, mobile/desktop) on the app registration.",
+      "Web platforms require HTTPS redirect URIs (localhost is allowed for development)."
+    ],
+    "examples": ["https://app.example.com/auth/microsoft/callback", "http://localhost:3000/auth/callback"]
+  },
+  "scopes": {
+    "recommended": [
+      { "scope": "openid profile offline_access", "purpose": "Basic sign-in and refresh tokens; no admin consent needed." },
+      { "scope": "User.Read", "purpose": "Read the signed-in user's profile (delegated, user-consentable)." },
+      { "scope": "Mail.Read", "purpose": "Read the user's mail (delegated; may require admin consent per tenant policy)." }
+    ],
+    "sensitive": [
+      { "scope": "Mail.Read (application)", "level": "admin", "consequence": "Application permission reads mail across the tenant; always requires admin consent." },
+      { "scope": "Directory.ReadWrite.All", "level": "privileged", "consequence": "Broad directory write access; requires admin consent and is heavily scrutinized." },
+      { "scope": "User.Read.All", "level": "admin", "consequence": "Reads all users' profiles in the tenant; requires admin consent." }
+    ],
+    "notes": [
+      "Application permissions always require admin consent; many delegated permissions do too.",
+      "Unverified multitenant apps requesting beyond basic sign-in are blocked by risk-based step-up consent (policy since Nov 2020)."
+    ]
+  },
+  "blockers": [
+    {
+      "title": "Unverified publisher warning blocks new tenants",
+      "symptom": "Users in other tenants see an unverified-publisher warning or can't consent.",
+      "cause": "A multitenant app registered after Nov 8 2020 requests permissions beyond basic sign-in without a verified publisher.",
+      "resolution": "Complete publisher verification by associating a verified CPP Partner One ID with the app.",
+      "actor": "human"
+    },
+    {
+      "title": "Permission requires admin consent",
+      "symptom": "A user cannot grant a requested permission themselves.",
+      "cause": "The permission requires tenant admin consent (all application permissions and many delegated ones).",
+      "resolution": "Have a tenant admin grant consent via the admin consent flow.",
+      "actor": "human"
+    },
+    {
+      "title": "Publisher verification requirements not met",
+      "symptom": "Publisher verification cannot be completed.",
+      "cause": "Missing verified CPP account, unverified publisher domain, *.onmicrosoft.com domain, or insufficient roles.",
+      "resolution": "Verify the CPP (Partner One ID) account, set a verified custom publisher domain, and ensure the initiator holds the required Entra and Partner Center roles with MFA.",
+      "actor": "human"
+    }
+  ],
+  "agentHandoff": {
+    "agentCan": [
+      "Implement the authorization code flow with PKCE and token refresh",
+      "Wire redirect URIs and the requested Graph scopes",
+      "Draft the admin-consent URL for customer tenants"
+    ],
+    "humanMust": [
+      "Register the app with a work/school account and set a verified publisher domain",
+      "Complete publisher verification via the CPP account",
+      "Obtain admin consent in each customer tenant"
+    ],
+    "handoffPoints": [
+      "Agent builds the OAuth flow; a human owns publisher verification and per-tenant admin consent."
+    ]
+  },
+  "confidence": {
+    "difficulty": { "level": "verified", "note": "Multitenant publisher verification and admin consent requirements documented.", "sourceRefs": [1] },
+    "timeEstimate": { "level": "community", "note": "Verification is fast once prerequisites are met; per-tenant consent is open-ended.", "sourceRefs": [1] },
+    "review": { "level": "verified", "note": "Publisher verification and step-up consent policy documented in the overview.", "sourceRefs": [1] },
+    "prerequisites": { "level": "verified", "note": "CPP account, work/school account, and publisher domain requirements from the overview.", "sourceRefs": [1] },
+    "steps": { "level": "verified", "note": "Registration from the quickstart; verification from the publisher-verification overview.", "sourceRefs": [0, 1] },
+    "redirectUris": { "level": "verified", "note": "Redirect URI handling from the register-app quickstart.", "sourceRefs": [0] },
+    "scopes": { "level": "community", "note": "Graph scope names are standard; admin-consent behavior is documented, selection is author guidance.", "sourceRefs": [1] },
+    "blockers": { "level": "verified", "note": "Step-up consent and verification-requirement blockers documented in the overview.", "sourceRefs": [1] },
+    "agentHandoff": { "level": "community", "note": "Author judgment on the agent/human split.", "sourceRefs": [1] }
+  },
+  "verification": {
+    "lastVerified": "2026-10-20",
+    "sources": [
+      { "url": "https://learn.microsoft.com/en-us/entra/identity-platform/quickstart-register-app", "title": "Quickstart: Register an app - Microsoft identity platform", "kind": "official", "accessed": "2026-10-20" },
+      { "url": "https://learn.microsoft.com/en-us/entra/identity-platform/publisher-verification-overview", "title": "Publisher verification overview - Microsoft identity platform", "kind": "official", "accessed": "2026-10-20" }
+    ],
+    "checked": [
+      "Confirmed publisher verification is for multitenant OAuth 2.0 / OIDC apps and yields the blue verified badge.",
+      "Confirmed the Nov 2020 risk-based step-up consent policy blocks unverified multitenant apps beyond basic sign-in.",
+      "Confirmed CPP Partner One ID, verified publisher domain (not *.onmicrosoft.com), and role/MFA requirements."
+    ],
+    "corrected": [
+      "Azure AD is now Microsoft Entra ID; cited the current learn.microsoft.com/entra identity-platform URLs.",
+      "App website redirected from learn.microsoft.com to learn.microsoft.com/en-us/; updated app.website to the final URL."
+    ],
+    "uncertain": [
+      "Publisher verification wall-clock time depends on whether CPP prerequisites are already met; treated as community-reported."
+    ]
+  },
+  "generatedBy": "curated",
+  "generatedAt": "2026-10-20T00:00:00Z",
+  "model": null,
+  "query": null
+}

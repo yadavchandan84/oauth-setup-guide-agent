@@ -1,0 +1,172 @@
+{
+  "schemaVersion": 1,
+  "slug": "google-workspace",
+  "aliases": ["google", "gmail", "googleworkspace", "gsuite", "googlecalendar", "googledrive", "googlecloud", "gcp"],
+  "app": {
+    "name": "Google Workspace / Gmail",
+    "website": "https://developers.google.com",
+    "category": "Productivity",
+    "brand": { "color": "#4285F4", "monogram": "G" }
+  },
+  "summary": "Creating OAuth credentials in Google Cloud is quick, but shipping a public app that touches Gmail, Drive, or Calendar user data is the hardest approval path in this set. Sensitive scopes trigger Google's OAuth app verification; restricted scopes (such as Gmail message bodies) additionally require an independent CASA security assessment and annual re-verification. Plan for weeks, not days, before a public app leaves the unverified state.",
+  "oauthAvailability": {
+    "status": "supported",
+    "note": "OAuth 2.0 is the standard for accessing Google APIs. Verification requirements scale with the sensitivity of the scopes you request.",
+    "alternatives": ["Service accounts for server-to-server access without a user present"]
+  },
+  "difficulty": { "level": "Very Hard", "reason": "Restricted scopes require OAuth verification plus an independent CASA security assessment and annual re-verification." },
+  "timeEstimate": {
+    "handsOn": { "min": 1, "max": 3, "unit": "days", "note": "Includes consent-screen config, scope justification, and assessment prep." },
+    "approvalWait": { "min": 4, "max": 12, "unit": "weeks", "note": "Dominated by verification and, for restricted scopes, the CASA assessment." },
+    "criticalPath": "The OAuth app verification plus CASA security assessment for restricted scopes dominates the timeline."
+  },
+  "review": {
+    "required": true,
+    "requiredWhen": "Required when a public app requests sensitive or restricted scopes. Apps using only non-sensitive scopes may skip verification (brand verification still applies to show a name and logo).",
+    "types": ["oauth-verification", "security-assessment"],
+    "stages": [
+      { "name": "OAuth app verification", "actor": "human", "duration": { "min": 2, "max": 6, "unit": "weeks" }, "description": "Google reviews the app, consent screen, scope justifications, and a demo video for sensitive/restricted scopes." },
+      { "name": "CASA security assessment", "actor": "human", "duration": { "min": 3, "max": 8, "unit": "weeks" }, "description": "Independent CASA assessment required for restricted scopes (e.g. Gmail message content). Must be repeated for annual re-verification." }
+    ]
+  },
+  "prerequisites": [
+    { "item": "A Google Cloud project", "detail": "OAuth client credentials are created inside a Cloud project.", "actor": "assist" },
+    { "item": "A configured OAuth consent screen", "detail": "App name, support email, developer contact, authorized domains, and a privacy policy are required.", "actor": "human" },
+    { "item": "A verified domain and public privacy policy", "detail": "Authorized domains must be verified; a homepage and privacy policy URL are required for verification.", "actor": "human" },
+    { "item": "Scope justifications and a demo video", "detail": "Sensitive/restricted scope requests need written justification and a walkthrough video.", "actor": "human" }
+  ],
+  "steps": [
+    {
+      "title": "Create OAuth client credentials in Google Cloud",
+      "detail": "In the Google API Console, create an OAuth client ID appropriate for your platform (Web application for server-side or JavaScript web apps). A JavaScript app needs no secret; a web-server app does.",
+      "consoleUrl": "https://developers.google.com/identity/protocols/oauth2",
+      "actor": "assist",
+      "estimate": "20 min"
+    },
+    {
+      "title": "Configure the OAuth consent screen",
+      "detail": "Set the app name, user support email, developer contact, authorized domains, and links to your homepage and privacy policy. Add the scopes your app needs; the console labels each as non-sensitive, sensitive, or restricted.",
+      "consoleUrl": "https://support.google.com/cloud/answer/13463073",
+      "actor": "human",
+      "estimate": "2 hours",
+      "gotcha": "Adding even one sensitive or restricted scope moves a public app into the verification requirement."
+    },
+    {
+      "title": "Select the minimum scopes and justify them",
+      "detail": "Pick the narrowest Gmail/Drive/Calendar scopes that satisfy your feature. For each sensitive or restricted scope, write a justification explaining why the app needs it and record a demo video.",
+      "consoleUrl": "https://developers.google.com/workspace/gmail/api/auth/scopes",
+      "actor": "human",
+      "estimate": "half a day"
+    },
+    {
+      "title": "Submit for OAuth app verification",
+      "detail": "Submit the app for verification from the consent-screen page. Google reviews scopes, branding, and your justification. Expect follow-up questions.",
+      "consoleUrl": "https://support.google.com/cloud/answer/13463073",
+      "actor": "human",
+      "estimate": "ongoing"
+    },
+    {
+      "title": "Complete the CASA assessment for restricted scopes",
+      "detail": "If any scope is restricted (for example reading Gmail message content), complete an independent CASA security assessment through the App Defense Alliance. Restricted-scope apps must re-verify annually.",
+      "consoleUrl": "https://appdefensealliance.dev/casa",
+      "actor": "human",
+      "estimate": "weeks"
+    }
+  ],
+  "redirectUris": {
+    "notes": [
+      "Authorized redirect URIs are configured on the OAuth client in the Cloud console and must match exactly.",
+      "Authorized JavaScript origins are separate from redirect URIs for browser-side clients."
+    ],
+    "examples": ["https://app.example.com/oauth2/callback"]
+  },
+  "scopes": {
+    "recommended": [
+      { "scope": "openid email profile", "purpose": "Basic sign-in; non-sensitive, no verification required." },
+      { "scope": "https://www.googleapis.com/auth/gmail.readonly", "purpose": "Read Gmail messages and settings (restricted)." },
+      { "scope": "https://www.googleapis.com/auth/calendar.events", "purpose": "Read and write calendar events (sensitive)." }
+    ],
+    "sensitive": [
+      { "scope": "https://www.googleapis.com/auth/gmail.readonly", "level": "restricted", "consequence": "Restricted scope: triggers OAuth verification and a CASA security assessment, plus annual re-verification." },
+      { "scope": "https://www.googleapis.com/auth/drive", "level": "restricted", "consequence": "Full Drive access is restricted; prefer drive.file for per-file access to avoid the heaviest review." },
+      { "scope": "https://www.googleapis.com/auth/calendar", "level": "sensitive", "consequence": "Sensitive scope: requires OAuth app verification for public apps." }
+    ],
+    "notes": [
+      "Scope categories (non-sensitive, sensitive, restricted) are shown automatically when you add them in the console.",
+      "Using only non-sensitive scopes avoids mandatory verification; brand verification still lets you show a name and logo."
+    ]
+  },
+  "blockers": [
+    {
+      "title": "Unverified app warning blocks users",
+      "symptom": "Users see an \"unverified app\" screen or cannot grant consent.",
+      "cause": "A public app requesting sensitive/restricted scopes has not completed verification.",
+      "resolution": "Complete OAuth app verification (and CASA for restricted scopes), or restrict the app to test users while in development.",
+      "actor": "human"
+    },
+    {
+      "title": "CASA assessment rejected or stalled",
+      "symptom": "Restricted-scope verification stalls pending the security assessment.",
+      "cause": "The independent CASA assessment found gaps or is still in progress.",
+      "resolution": "Address the assessor's findings and resubmit; budget several weeks and plan for annual re-verification.",
+      "actor": "human"
+    },
+    {
+      "title": "Over-broad scope request rejected",
+      "symptom": "Google asks you to remove or narrow scopes.",
+      "cause": "The app requested broader scopes than its features justify (e.g. full Drive instead of drive.file).",
+      "resolution": "Switch to the narrowest scope that works and resubmit with updated justification.",
+      "actor": "human"
+    }
+  ],
+  "agentHandoff": {
+    "agentCan": [
+      "Create the OAuth client and wire the token exchange and refresh",
+      "Draft scope justifications and the list of narrowest scopes",
+      "Implement incremental authorization"
+    ],
+    "humanMust": [
+      "Own the OAuth consent screen, branding, and privacy policy",
+      "Submit for verification and respond to Google's questions",
+      "Engage and pass the CASA security assessment for restricted scopes"
+    ],
+    "handoffPoints": [
+      "The agent prepares credentials and scope justifications; a human submits verification and drives the CASA assessment."
+    ]
+  },
+  "confidence": {
+    "difficulty": { "level": "verified", "note": "Verification + CASA requirement confirmed on the verification help page.", "sourceRefs": [2, 3] },
+    "timeEstimate": { "level": "community", "note": "Wait times are community-reported; Google does not publish fixed durations.", "sourceRefs": [2] },
+    "review": { "level": "verified", "note": "Sensitive/restricted-scope verification requirement is documented.", "sourceRefs": [2, 3] },
+    "prerequisites": { "level": "verified", "note": "Consent-screen and credential prerequisites from official docs.", "sourceRefs": [0, 2] },
+    "steps": { "level": "verified", "note": "Steps follow the OAuth2 overview and verification help.", "sourceRefs": [0, 2] },
+    "redirectUris": { "level": "verified", "note": "Redirect URI handling from the OAuth2 overview.", "sourceRefs": [0] },
+    "scopes": { "level": "verified", "note": "Scope list and categories from the Gmail scopes reference and verification help.", "sourceRefs": [1, 2] },
+    "blockers": { "level": "community", "note": "Common verification blockers; the unverified-app behavior is documented.", "sourceRefs": [2] },
+    "agentHandoff": { "level": "community", "note": "Author judgment on the agent/human split.", "sourceRefs": [2] }
+  },
+  "verification": {
+    "lastVerified": "2026-10-20",
+    "sources": [
+      { "url": "https://developers.google.com/identity/protocols/oauth2", "title": "Using OAuth 2.0 to Access Google APIs", "kind": "official", "accessed": "2026-10-20" },
+      { "url": "https://developers.google.com/workspace/gmail/api/auth/scopes", "title": "Gmail API OAuth 2.0 scopes", "kind": "official", "accessed": "2026-10-20" },
+      { "url": "https://support.google.com/cloud/answer/13463073", "title": "OAuth App Verification Help Center", "kind": "official", "accessed": "2026-10-20" },
+      { "url": "https://appdefensealliance.dev/casa", "title": "CASA - App Defense Alliance", "kind": "official", "accessed": "2026-10-20" }
+    ],
+    "checked": [
+      "Confirmed sensitive/restricted scopes trigger OAuth app verification (answer/13463073).",
+      "Confirmed restricted-scope apps need a CASA assessment and annual re-verification.",
+      "Confirmed non-sensitive-only apps may skip verification (brand verification still applies)."
+    ],
+    "corrected": [
+      "Verification help now lives at support.google.com/cloud/answer/13463073 (older drafts cited answer/9110914)."
+    ],
+    "uncertain": [
+      "Exact verification and CASA wait times vary by app and are not published by Google; treated as community-reported."
+    ]
+  },
+  "generatedBy": "curated",
+  "generatedAt": "2026-10-20T00:00:00Z",
+  "model": null,
+  "query": null
+}

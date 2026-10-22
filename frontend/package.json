@@ -1,0 +1,48 @@
+{
+  "name": "oauth-guide-frontend",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "predev": "node ../scripts/sync-shared.mjs",
+    "dev": "vite",
+    "prebuild": "node ../scripts/sync-shared.mjs",
+    "build": "tsc -p tsconfig.json && vite build",
+    "pretypecheck": "node ../scripts/sync-shared.mjs",
+    "typecheck": "tsc -p tsconfig.json",
+    "pretest": "node ../scripts/sync-shared.mjs",
+    "test": "vitest run",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@fontsource-variable/inter": "5.1.0",
+    "@fontsource-variable/jetbrains-mono": "5.1.1",
+    "@react-three/drei": "9.117.3",
+    "@react-three/fiber": "8.17.10",
+    "eventsource-parser": "3.0.0",
+    "framer-motion": "11.11.17",
+    "lucide-react": "0.460.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "react-router-dom": "6.28.0",
+    "three": "0.169.0",
+    "zod": "3.23.8"
+  },
+  "devDependencies": {
+    "@testing-library/dom": "10.4.0",
+    "@testing-library/jest-dom": "6.6.3",
+    "@testing-library/react": "16.0.1",
+    "@testing-library/user-event": "14.5.2",
+    "@types/react": "18.3.12",
+    "@types/react-dom": "18.3.1",
+    "@types/three": "0.169.0",
+    "@vitejs/plugin-react": "4.3.4",
+    "autoprefixer": "10.4.20",
+    "jsdom": "25.0.1",
+    "postcss": "8.4.49",
+    "tailwindcss": "3.4.15",
+    "typescript": "5.6.3",
+    "vite": "5.4.11",
+    "vitest": "2.1.5"
+  }
+}

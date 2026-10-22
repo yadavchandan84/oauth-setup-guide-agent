@@ -1,0 +1,146 @@
+{
+  "schemaVersion": 1,
+  "slug": "linear",
+  "aliases": ["linear", "linearapp", "linearoauth"],
+  "app": {
+    "name": "Linear",
+    "website": "https://linear.app",
+    "category": "Project Management",
+    "brand": { "color": "#5E6AD2", "monogram": "L" }
+  },
+  "summary": "Linear's OAuth 2.0 is one of the simplest in this set: create an OAuth2 application in a workspace, set the redirect callback URLs, then run the authorization code flow against linear.app/oauth/authorize and exchange the code at api.linear.app/oauth/token. There is no mandatory review to use it. Linear supports PKCE and an actor parameter that lets an app create issues and comments either as the authorizing user or as the application itself (useful for agents and service accounts).",
+  "oauthAvailability": {
+    "status": "supported",
+    "note": "OAuth 2.0 authorization code flow with PKCE support and an actor parameter (user or app). The read scope is always present.",
+    "alternatives": ["Personal API keys for single-user scripts", "Client credentials token for CI and scheduled automation"]
+  },
+  "difficulty": { "level": "Easy", "reason": "Create an app, set redirect URLs, and run a standard OAuth2 flow; no review step." },
+  "timeEstimate": {
+    "handsOn": { "min": 15, "max": 30, "unit": "minutes" },
+    "approvalWait": { "min": 0, "max": 0, "unit": "minutes", "note": "No review gate." },
+    "criticalPath": "Creating the OAuth2 application and wiring the authorization code flow."
+  },
+  "review": {
+    "required": false,
+    "requiredWhen": "Never for OAuth functionality; tokens work as soon as the app is created.",
+    "types": ["none"],
+    "stages": []
+  },
+  "prerequisites": [
+    { "item": "A Linear workspace", "detail": "It is recommended to create a dedicated workspace for managing the OAuth2 application, since each admin user has access.", "actor": "human" },
+    { "item": "Redirect callback URL(s)", "detail": "Configured when you create the OAuth2 application.", "actor": "assist" }
+  ],
+  "steps": [
+    {
+      "title": "Create an OAuth2 application",
+      "detail": "Create a new OAuth2 application in your Linear workspace and configure the redirect callback URLs. Copy the client ID and client secret.",
+      "consoleUrl": "https://linear.app/developers/oauth-2-0-authentication",
+      "actor": "human",
+      "estimate": "10 min"
+    },
+    {
+      "title": "Redirect the user to authorize",
+      "detail": "Send the user to https://linear.app/oauth/authorize with client_id, redirect_uri, response_type=code, and a comma-separated scope list. Always include a random state value, and optionally use PKCE (code_challenge and code_challenge_method).",
+      "consoleUrl": "https://linear.app/developers/oauth-2-0-authentication",
+      "actor": "agent",
+      "estimate": "10 min",
+      "gotcha": "The read scope is always present; validate the returned state against the value you sent."
+    },
+    {
+      "title": "Exchange the code for an access token",
+      "detail": "On the callback, POST the authorization code, redirect_uri, client_id, and client_secret to https://api.linear.app/oauth/token to receive an access token.",
+      "consoleUrl": "https://linear.app/developers/oauth-2-0-authentication",
+      "actor": "agent",
+      "estimate": "10 min"
+    },
+    {
+      "title": "Choose the actor for created resources",
+      "detail": "Set the actor parameter to user (default) so resources are created as the authorizing user, or app so issues/comments are created as the application itself, which suits agents and service accounts.",
+      "consoleUrl": "https://linear.app/developers/oauth-actor-authorization",
+      "actor": "agent",
+      "estimate": "10 min"
+    }
+  ],
+  "redirectUris": {
+    "notes": [
+      "Redirect callback URLs are configured on the OAuth2 application.",
+      "The redirect_uri in the authorize request must match a configured callback URL."
+    ],
+    "examples": ["https://app.example.com/linear/oauth/callback", "http://localhost:3000/oauth/callback"]
+  },
+  "scopes": {
+    "recommended": [
+      { "scope": "read", "purpose": "Read access for the user's account (always present)." },
+      { "scope": "write", "purpose": "Write access for the user's account." },
+      { "scope": "issues:create", "purpose": "Create new issues and their attachments (targeted alternative to write)." },
+      { "scope": "comments:create", "purpose": "Create new issue comments." }
+    ],
+    "sensitive": [
+      { "scope": "admin", "level": "admin", "consequence": "Full access to admin-level endpoints; Linear advises never requesting this unless absolutely necessary." }
+    ],
+    "notes": [
+      "Prefer targeted scopes (issues:create, comments:create) over the broad write scope.",
+      "App-specific scopes such as app:assignable and app:mentionable exist for agents; see the app authentication docs."
+    ]
+  },
+  "blockers": [
+    {
+      "title": "state mismatch on callback",
+      "symptom": "The callback state value does not match what you sent.",
+      "cause": "A missing or unvalidated state parameter, or a CSRF attempt.",
+      "resolution": "Always send a secure random state and reject the callback if it does not match.",
+      "actor": "agent"
+    },
+    {
+      "title": "Resources attributed to the wrong actor",
+      "symptom": "Issues or comments are created as the user when the app wanted its own identity (or vice versa).",
+      "cause": "The actor parameter was not set as intended.",
+      "resolution": "Set actor=app for agent/service-account behavior or actor=user for per-user attribution.",
+      "actor": "agent"
+    }
+  ],
+  "agentHandoff": {
+    "agentCan": [
+      "Implement the authorization code flow with PKCE",
+      "Exchange the code and store the token",
+      "Configure the actor parameter for agent behavior"
+    ],
+    "humanMust": [
+      "Create the OAuth2 application and hold the client secret",
+      "Choose and manage the workspace that owns the app"
+    ],
+    "handoffPoints": [
+      "A human creates the OAuth2 app; the agent implements the flow and actor configuration."
+    ]
+  },
+  "confidence": {
+    "difficulty": { "level": "verified", "note": "Standard OAuth2 with no review step.", "sourceRefs": [0] },
+    "timeEstimate": { "level": "community", "note": "Hands-on effort is an author estimate; no approval wait.", "sourceRefs": [0] },
+    "review": { "level": "verified", "note": "No review gate documented; tokens work immediately.", "sourceRefs": [0] },
+    "prerequisites": { "level": "verified", "note": "Workspace and redirect-URL requirements from the OAuth docs.", "sourceRefs": [0] },
+    "steps": { "level": "verified", "note": "Authorize/token endpoints and actor parameter from the OAuth docs.", "sourceRefs": [0, 1] },
+    "redirectUris": { "level": "verified", "note": "Redirect callback handling from the OAuth docs.", "sourceRefs": [0] },
+    "scopes": { "level": "verified", "note": "Scope list (read always present, targeted scopes, admin warning) from the OAuth docs.", "sourceRefs": [0] },
+    "blockers": { "level": "community", "note": "state and actor pitfalls follow documented parameters; common integration issues.", "sourceRefs": [0, 1] },
+    "agentHandoff": { "level": "community", "note": "Author judgment on the agent/human split.", "sourceRefs": [0] }
+  },
+  "verification": {
+    "lastVerified": "2026-10-20",
+    "sources": [
+      { "url": "https://linear.app/developers/oauth-2-0-authentication", "title": "OAuth 2.0 authentication - Linear Developers", "kind": "official", "accessed": "2026-10-20" },
+      { "url": "https://linear.app/developers/oauth-actor-authorization", "title": "OAuth actor authorization - Linear Developers", "kind": "official", "accessed": "2026-10-20" },
+      { "url": "https://linear.app/developers/graphql", "title": "GraphQL API - Linear Developers", "kind": "official", "accessed": "2026-10-20" }
+    ],
+    "checked": [
+      "Confirmed authorize (linear.app/oauth/authorize) and token (api.linear.app/oauth/token) endpoints and scope list.",
+      "Confirmed PKCE support and the actor=user/app parameter.",
+      "Confirmed the read scope is always present."
+    ],
+    "corrected": [],
+    "uncertain": []
+  },
+  "generatedBy": "curated",
+  "generatedAt": "2026-10-20T00:00:00Z",
+  "model": null,
+  "query": null
+}

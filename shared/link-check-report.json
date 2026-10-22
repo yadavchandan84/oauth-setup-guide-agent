@@ -1,0 +1,455 @@
+{
+  "checkedAt": "2026-10-22T21:55:01.336Z",
+  "results": [
+    {
+      "url": "https://appdefensealliance.dev/casa",
+      "guides": [
+        "google-workspace"
+      ],
+      "status": "ok",
+      "httpStatus": 200,
+      "finalUrl": "https://appdefensealliance.dev/casa?hl=id"
+    },
+    {
+      "url": "https://developer.atlassian.com",
+      "guides": [
+        "atlassian-jira"
+      ],
+      "status": "ok",
+      "httpStatus": 200,
+      "finalUrl": "https://developer.atlassian.com/"
+    },
+    {
+      "url": "https://developer.atlassian.com/cloud/jira/platform/oauth-2-3lo-apps/",
+      "guides": [
+        "atlassian-jira"
+      ],
+      "status": "ok",
+      "httpStatus": 200,
+      "finalUrl": "https://developer.atlassian.com/cloud/jira/platform/oauth-2-3lo-apps/"
+    },
+    {
+      "url": "https://developer.atlassian.com/cloud/jira/platform/scopes-for-oauth-2-3LO-and-forge-apps/",
+      "guides": [
+        "atlassian-jira"
+      ],
+      "status": "ok",
+      "httpStatus": 200,
+      "finalUrl": "https://developer.atlassian.com/cloud/jira/platform/scopes-for-oauth-2-3LO-and-forge-apps/"
+    },
+    {
+      "url": "https://developer.salesforce.com/docs/platform/api-rest/guide/intro-oauth-and-connected-apps.html",
+      "guides": [
+        "salesforce"
+      ],
+      "status": "ok",
+      "httpStatus": 200,
+      "finalUrl": "https://developer.salesforce.com/docs/platform/api-rest/guide/intro-oauth-and-connected-apps.html"
+    },
+    {
+      "url": "https://developers.figma.com/docs/rest-api/authentication/",
+      "guides": [
+        "figma"
+      ],
+      "status": "ok",
+      "httpStatus": 200,
+      "finalUrl": "https://developers.figma.com/docs/rest-api/authentication/"
+    },
+    {
+      "url": "https://developers.figma.com/docs/rest-api/oauth-apps/",
+      "guides": [
+        "figma"
+      ],
+      "status": "ok",
+      "httpStatus": 200,
+      "finalUrl": "https://developers.figma.com/docs/rest-api/oauth-apps/"
+    },
+    {
+      "url": "https://developers.figma.com/docs/rest-api/scopes/",
+      "guides": [
+        "figma"
+      ],
+      "status": "ok",
+      "httpStatus": 200,
+      "finalUrl": "https://developers.figma.com/docs/rest-api/scopes/"
+    },
+    {
+      "url": "https://developers.google.com",
+      "guides": [
+        "google-workspace"
+      ],
+      "status": "ok",
+      "httpStatus": 200,
+      "finalUrl": "https://developers.google.com/"
+    },
+    {
+      "url": "https://developers.google.com/identity/protocols/oauth2",
+      "guides": [
+        "google-workspace"
+      ],
+      "status": "ok",
+      "httpStatus": 200,
+      "finalUrl": "https://developers.google.com/identity/protocols/oauth2"
+    },
+    {
+      "url": "https://developers.google.com/workspace/gmail/api/auth/scopes",
+      "guides": [
+        "google-workspace"
+      ],
+      "status": "ok",
+      "httpStatus": 200,
+      "finalUrl": "https://developers.google.com/workspace/gmail/api/auth/scopes"
+    },
+    {
+      "url": "https://developers.hubspot.com/docs/apps/legacy-apps/authentication/oauth-quickstart-guide",
+      "guides": [
+        "hubspot"
+      ],
+      "status": "ok",
+      "httpStatus": 200,
+      "finalUrl": "https://developers.hubspot.com/docs/apps/legacy-apps/authentication/oauth-quickstart-guide"
+    },
+    {
+      "url": "https://developers.hubspot.com/docs/apps/legacy-apps/authentication/working-with-oauth",
+      "guides": [
+        "hubspot"
+      ],
+      "status": "ok",
+      "httpStatus": 200,
+      "finalUrl": "https://developers.hubspot.com/docs/apps/legacy-apps/authentication/working-with-oauth"
+    },
+    {
+      "url": "https://developers.notion.com/guides/get-started/authorization",
+      "guides": [
+        "notion"
+      ],
+      "status": "ok",
+      "httpStatus": 200,
+      "finalUrl": "https://developers.notion.com/guides/get-started/authorization"
+    },
+    {
+      "url": "https://developers.notion.com/guides/get-started/quick-start",
+      "guides": [
+        "notion"
+      ],
+      "status": "ok",
+      "httpStatus": 200,
+      "finalUrl": "https://developers.notion.com/guides/get-started/quick-start"
+    },
+    {
+      "url": "https://developers.zoom.us/docs/distribute/app-review-process/",
+      "guides": [
+        "zoom"
+      ],
+      "status": "ok",
+      "httpStatus": 200,
+      "finalUrl": "https://developers.zoom.us/docs/distribute/app-review-process/"
+    },
+    {
+      "url": "https://developers.zoom.us/docs/integrations/oauth/",
+      "guides": [
+        "zoom"
+      ],
+      "status": "ok",
+      "httpStatus": 200,
+      "finalUrl": "https://developers.zoom.us/docs/integrations/oauth/"
+    },
+    {
+      "url": "https://discord.com",
+      "guides": [
+        "discord"
+      ],
+      "status": "ok",
+      "httpStatus": 200,
+      "finalUrl": "https://discord.com/"
+    },
+    {
+      "url": "https://discord.com/developers/applications",
+      "guides": [
+        "discord"
+      ],
+      "status": "ok",
+      "httpStatus": 200,
+      "finalUrl": "https://discord.com/developers/applications"
+    },
+    {
+      "url": "https://docs.discord.com/developers/topics/oauth2",
+      "guides": [
+        "discord"
+      ],
+      "status": "ok",
+      "httpStatus": 200,
+      "finalUrl": "https://docs.discord.com/developers/topics/oauth2"
+    },
+    {
+      "url": "https://docs.discord.com/developers/topics/permissions",
+      "guides": [
+        "discord"
+      ],
+      "status": "ok",
+      "httpStatus": 200,
+      "finalUrl": "https://docs.discord.com/developers/topics/permissions"
+    },
+    {
+      "url": "https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/authorizing-oauth-apps",
+      "guides": [
+        "github"
+      ],
+      "status": "ok",
+      "httpStatus": 200,
+      "finalUrl": "https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/authorizing-oauth-apps"
+    },
+    {
+      "url": "https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/creating-an-oauth-app",
+      "guides": [
+        "github"
+      ],
+      "status": "ok",
+      "httpStatus": 200,
+      "finalUrl": "https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/creating-an-oauth-app"
+    },
+    {
+      "url": "https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/scopes-for-oauth-apps",
+      "guides": [
+        "github"
+      ],
+      "status": "ok",
+      "httpStatus": 200,
+      "finalUrl": "https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/scopes-for-oauth-apps"
+    },
+    {
+      "url": "https://docs.slack.dev/authentication/installing-with-oauth/",
+      "guides": [
+        "slack"
+      ],
+      "status": "ok",
+      "httpStatus": 200,
+      "finalUrl": "https://docs.slack.dev/authentication/installing-with-oauth/"
+    },
+    {
+      "url": "https://docs.slack.dev/slack-marketplace/slack-marketplace-app-guidelines-and-requirements/",
+      "guides": [
+        "slack"
+      ],
+      "status": "ok",
+      "httpStatus": 200,
+      "finalUrl": "https://docs.slack.dev/slack-marketplace/slack-marketplace-app-guidelines-and-requirements/"
+    },
+    {
+      "url": "https://docs.slack.dev/slack-marketplace/slack-marketplace-review-guide/",
+      "guides": [
+        "slack"
+      ],
+      "status": "ok",
+      "httpStatus": 200,
+      "finalUrl": "https://docs.slack.dev/slack-marketplace/slack-marketplace-review-guide/"
+    },
+    {
+      "url": "https://docs.stripe.com/connect/oauth-reference",
+      "guides": [
+        "stripe-connect"
+      ],
+      "status": "ok",
+      "httpStatus": 200,
+      "finalUrl": "https://docs.stripe.com/connect/oauth-reference"
+    },
+    {
+      "url": "https://docs.stripe.com/connect/oauth-standard-accounts",
+      "guides": [
+        "stripe-connect"
+      ],
+      "status": "ok",
+      "httpStatus": 200,
+      "finalUrl": "https://docs.stripe.com/connect/oauth-standard-accounts"
+    },
+    {
+      "url": "https://github.com",
+      "guides": [
+        "github"
+      ],
+      "status": "ok",
+      "httpStatus": 200,
+      "finalUrl": "https://github.com/"
+    },
+    {
+      "url": "https://github.com/settings/developers",
+      "guides": [
+        "github"
+      ],
+      "status": "redirected",
+      "httpStatus": 200,
+      "finalUrl": "https://github.com/login?return_to=https%3A%2F%2Fgithub.com%2Fsettings%2Fdevelopers"
+    },
+    {
+      "url": "https://help.salesforce.com/s/articleView?id=sf.connected_app_overview.htm&type=5",
+      "guides": [
+        "salesforce"
+      ],
+      "status": "ok",
+      "httpStatus": 200,
+      "finalUrl": "https://help.salesforce.com/s/articleView?language=en_US&id=sf.connected_app_overview.htm&type=5"
+    },
+    {
+      "url": "https://learn.microsoft.com/en-us/",
+      "guides": [
+        "microsoft-entra"
+      ],
+      "status": "ok",
+      "httpStatus": 200,
+      "finalUrl": "https://learn.microsoft.com/en-us/"
+    },
+    {
+      "url": "https://learn.microsoft.com/en-us/entra/identity-platform/publisher-verification-overview",
+      "guides": [
+        "microsoft-entra"
+      ],
+      "status": "ok",
+      "httpStatus": 200,
+      "finalUrl": "https://learn.microsoft.com/en-us/entra/identity-platform/publisher-verification-overview"
+    },
+    {
+      "url": "https://learn.microsoft.com/en-us/entra/identity-platform/quickstart-register-app",
+      "guides": [
+        "microsoft-entra"
+      ],
+      "status": "ok",
+      "httpStatus": 200,
+      "finalUrl": "https://learn.microsoft.com/en-us/entra/identity-platform/quickstart-register-app"
+    },
+    {
+      "url": "https://linear.app",
+      "guides": [
+        "linear"
+      ],
+      "status": "ok",
+      "httpStatus": 200,
+      "finalUrl": "https://linear.app/"
+    },
+    {
+      "url": "https://linear.app/developers/graphql",
+      "guides": [
+        "linear"
+      ],
+      "status": "ok",
+      "httpStatus": 200,
+      "finalUrl": "https://linear.app/developers/graphql"
+    },
+    {
+      "url": "https://linear.app/developers/oauth-2-0-authentication",
+      "guides": [
+        "linear"
+      ],
+      "status": "ok",
+      "httpStatus": 200,
+      "finalUrl": "https://linear.app/developers/oauth-2-0-authentication"
+    },
+    {
+      "url": "https://linear.app/developers/oauth-actor-authorization",
+      "guides": [
+        "linear"
+      ],
+      "status": "ok",
+      "httpStatus": 200,
+      "finalUrl": "https://linear.app/developers/oauth-actor-authorization"
+    },
+    {
+      "url": "https://shopify.dev/docs/apps/build/authentication-authorization",
+      "guides": [
+        "shopify"
+      ],
+      "status": "ok",
+      "httpStatus": 200,
+      "finalUrl": "https://shopify.dev/docs/apps/build/authentication-authorization"
+    },
+    {
+      "url": "https://shopify.dev/docs/apps/launch/shopify-app-store/best-practices",
+      "guides": [
+        "shopify"
+      ],
+      "status": "ok",
+      "httpStatus": 200,
+      "finalUrl": "https://shopify.dev/docs/apps/launch/shopify-app-store/best-practices"
+    },
+    {
+      "url": "https://slack.com",
+      "guides": [
+        "slack"
+      ],
+      "status": "redirected",
+      "httpStatus": 200,
+      "finalUrl": "https://slack.com/intl/en-in/"
+    },
+    {
+      "url": "https://stripe.com",
+      "guides": [
+        "stripe-connect"
+      ],
+      "status": "redirected",
+      "httpStatus": 200,
+      "finalUrl": "https://stripe.com/in"
+    },
+    {
+      "url": "https://support.google.com/cloud/answer/13463073",
+      "guides": [
+        "google-workspace"
+      ],
+      "status": "ok",
+      "httpStatus": 200,
+      "finalUrl": "https://support.google.com/cloud/answer/13463073"
+    },
+    {
+      "url": "https://www.figma.com",
+      "guides": [
+        "figma"
+      ],
+      "status": "ok",
+      "httpStatus": 200,
+      "finalUrl": "https://www.figma.com/"
+    },
+    {
+      "url": "https://www.hubspot.com",
+      "guides": [
+        "hubspot"
+      ],
+      "status": "ok",
+      "httpStatus": 200,
+      "finalUrl": "https://www.hubspot.com/"
+    },
+    {
+      "url": "https://www.notion.com",
+      "guides": [
+        "notion"
+      ],
+      "status": "ok",
+      "httpStatus": 200,
+      "finalUrl": "https://www.notion.com/"
+    },
+    {
+      "url": "https://www.salesforce.com",
+      "guides": [
+        "salesforce"
+      ],
+      "status": "redirected",
+      "httpStatus": 200,
+      "finalUrl": "https://www.salesforce.com/in/?ir=1"
+    },
+    {
+      "url": "https://www.shopify.com",
+      "guides": [
+        "shopify"
+      ],
+      "status": "ok",
+      "httpStatus": 200,
+      "finalUrl": "https://www.shopify.com/"
+    },
+    {
+      "url": "https://www.zoom.com",
+      "guides": [
+        "zoom"
+      ],
+      "status": "ok",
+      "httpStatus": 200,
+      "finalUrl": "https://www.zoom.com/"
+    }
+  ]
+}

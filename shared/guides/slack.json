@@ -1,0 +1,160 @@
+{
+  "schemaVersion": 1,
+  "slug": "slack",
+  "aliases": ["slack", "slackapp", "slackbot"],
+  "app": {
+    "name": "Slack",
+    "website": "https://slack.com",
+    "category": "Communication",
+    "brand": { "color": "#4A154B", "monogram": "SL" }
+  },
+  "summary": "A Slack app that installs into your own workspace works the moment you finish OAuth setup: define scopes, add a redirect URL, and run the install flow. No review is needed to use the app privately. Listing publicly in the Slack Marketplace is optional and adds a substantial review that can run many weeks, including a hard prerequisite of 10+ active workspaces before you may submit.",
+  "oauthAvailability": {
+    "status": "supported",
+    "note": "Slack uses OAuth 2.0 for installation. Private installs need no review; a Marketplace listing is optional.",
+    "alternatives": []
+  },
+  "difficulty": { "level": "Moderate", "reason": "Scope and installation setup is straightforward, but public Marketplace listing adds a long optional review with strict prerequisites." },
+  "timeEstimate": {
+    "handsOn": { "min": 1, "max": 3, "unit": "hours" },
+    "approvalWait": { "min": 0, "max": 0, "unit": "minutes", "note": "Zero for private installs. Marketplace listing adds up to ~10 weeks." },
+    "criticalPath": "OAuth setup is fast; the optional Marketplace review is the long pole if you choose to list."
+  },
+  "review": {
+    "required": false,
+    "requiredWhen": "Only required to list the app in the Slack Marketplace. Private/distributed installs do not need review.",
+    "types": ["optional-listing"],
+    "stages": [
+      { "name": "Preliminary review", "actor": "human", "duration": { "min": 1, "max": 2, "unit": "weeks", "note": "Up to 10 business days for feedback." }, "description": "Slack's Marketplace team gives initial feedback on the submission and listing." },
+      { "name": "Functional review", "actor": "human", "duration": { "min": 6, "max": 10, "unit": "weeks" }, "description": "Up to 10 weeks for new submissions (up to 6 weeks for published-app resubmissions). Requires 10+ active workspaces before submitting." }
+    ]
+  },
+  "prerequisites": [
+    { "item": "A Slack workspace you can install into", "detail": "You need a workspace to create and test the app.", "actor": "human" },
+    { "item": "An app created in the Slack developer portal", "detail": "Create the app, then configure OAuth scopes and a redirect URL.", "actor": "assist" },
+    { "item": "For Marketplace listing: 10+ active workspaces", "detail": "An active workspace is one used in the past 28 days; apps below this are blocked from submitting.", "actor": "human" }
+  ],
+  "steps": [
+    {
+      "title": "Create a Slack app and add OAuth scopes",
+      "detail": "Create a new app in the Slack developer portal, then under OAuth & Permissions add the bot and/or user scopes your app needs.",
+      "consoleUrl": "https://docs.slack.dev/authentication/installing-with-oauth/",
+      "actor": "assist",
+      "estimate": "20 min"
+    },
+    {
+      "title": "Add a redirect URL and build the install flow",
+      "detail": "Register an HTTPS redirect URL, then send admins to the authorize endpoint. Exchange the returned code at oauth.v2.access for bot and user tokens.",
+      "consoleUrl": "https://docs.slack.dev/authentication/installing-with-oauth/",
+      "actor": "agent",
+      "estimate": "45 min",
+      "gotcha": "Bot and user tokens are returned in different parts of the oauth.v2.access response; store the right one for each API call."
+    },
+    {
+      "title": "Install to your workspace and verify",
+      "detail": "Run the install flow against a non-development workspace as a new customer would, confirming installation, onboarding, and uninstall all work end to end.",
+      "consoleUrl": "https://docs.slack.dev/slack-marketplace/slack-marketplace-app-guidelines-and-requirements/",
+      "actor": "human",
+      "estimate": "30 min"
+    },
+    {
+      "title": "Optional: submit for Marketplace review",
+      "detail": "From the Submit to the Slack Marketplace section of the app's config, review your listing, scopes, and test credentials, pass automated checks, then submit. You must already have 10+ active workspaces.",
+      "consoleUrl": "https://docs.slack.dev/slack-marketplace/slack-marketplace-review-guide/",
+      "actor": "human",
+      "estimate": "ongoing"
+    }
+  ],
+  "redirectUris": {
+    "notes": [
+      "Redirect URLs must be HTTPS and are registered under OAuth & Permissions.",
+      "The redirect_uri in the authorize request must match a registered URL."
+    ],
+    "examples": ["https://app.example.com/slack/oauth/callback"]
+  },
+  "scopes": {
+    "recommended": [
+      { "scope": "chat:write", "purpose": "Post messages as the app's bot user." },
+      { "scope": "channels:read", "purpose": "List public channels in the workspace." },
+      { "scope": "commands", "purpose": "Add slash commands." },
+      { "scope": "users:read", "purpose": "Look up basic user profile information." }
+    ],
+    "sensitive": [
+      { "scope": "admin", "level": "admin", "consequence": "Admin scopes grant workspace/org administration; reviewed closely and only for Enterprise Grid admin apps." },
+      { "scope": "channels:history", "level": "sensitive", "consequence": "Reads message content in public channels; justify in the Marketplace review." }
+    ],
+    "notes": [
+      "Request the minimum scopes; reviewers check that each scope maps to a feature.",
+      "Leftover test slash commands or unused scopes commonly cause review returns."
+    ]
+  },
+  "blockers": [
+    {
+      "title": "Blocked from Marketplace submission",
+      "symptom": "You cannot submit the app to the Marketplace.",
+      "cause": "The app has fewer than 10 active workspaces (used in the last 28 days).",
+      "resolution": "Grow adoption to 10+ active workspaces before submitting; this threshold is enforced at submission.",
+      "actor": "human"
+    },
+    {
+      "title": "Submission returned as not ready",
+      "symptom": "Slack returns the submission and asks for more work before resubmitting.",
+      "cause": "Bugs, poor UX, or the app was submitted while still in beta or partially tested.",
+      "resolution": "Ship a production-ready, fully tested build; run the full install/onboarding/uninstall flow as a new customer first.",
+      "actor": "human"
+    },
+    {
+      "title": "invalid redirect_uri on install",
+      "symptom": "The install flow errors on the redirect step.",
+      "cause": "The redirect_uri is not an exact match to a registered HTTPS redirect URL.",
+      "resolution": "Register the exact HTTPS redirect URL under OAuth & Permissions and retry.",
+      "actor": "agent"
+    }
+  ],
+  "agentHandoff": {
+    "agentCan": [
+      "Implement the oauth.v2.access code exchange and token storage",
+      "Wire scopes, slash commands, and the redirect route",
+      "Draft the Marketplace listing copy"
+    ],
+    "humanMust": [
+      "Create and own the Slack app configuration",
+      "Grow to 10+ active workspaces before any Marketplace submission",
+      "Submit for review and respond to reviewer feedback"
+    ],
+    "handoffPoints": [
+      "Agent builds and tests the install flow; a human decides on and drives any Marketplace listing."
+    ]
+  },
+  "confidence": {
+    "difficulty": { "level": "verified", "note": "Private install is review-free; Marketplace review is optional and documented.", "sourceRefs": [0, 2] },
+    "timeEstimate": { "level": "community", "note": "Hands-on is an estimate; review durations are from the review guide.", "sourceRefs": [2] },
+    "review": { "level": "verified", "note": "Review timelines and prerequisites from the Marketplace review guide.", "sourceRefs": [2] },
+    "prerequisites": { "level": "verified", "note": "10+ active workspaces prerequisite documented in the review guide.", "sourceRefs": [2] },
+    "steps": { "level": "verified", "note": "Install steps follow the installing-with-oauth guide.", "sourceRefs": [0] },
+    "redirectUris": { "level": "verified", "note": "Redirect URL handling from the OAuth install guide.", "sourceRefs": [0] },
+    "scopes": { "level": "community", "note": "Scope names are standard Slack scopes; selection is author guidance.", "sourceRefs": [0] },
+    "blockers": { "level": "verified", "note": "Submission blockers (workspace threshold, readiness) documented in the review guide.", "sourceRefs": [1, 2] },
+    "agentHandoff": { "level": "community", "note": "Author judgment on the agent/human split.", "sourceRefs": [0] }
+  },
+  "verification": {
+    "lastVerified": "2026-10-20",
+    "sources": [
+      { "url": "https://docs.slack.dev/authentication/installing-with-oauth/", "title": "Installing with OAuth - Slack Developer Docs", "kind": "official", "accessed": "2026-10-20" },
+      { "url": "https://docs.slack.dev/slack-marketplace/slack-marketplace-app-guidelines-and-requirements/", "title": "Slack Marketplace app guidelines and requirements", "kind": "official", "accessed": "2026-10-20" },
+      { "url": "https://docs.slack.dev/slack-marketplace/slack-marketplace-review-guide/", "title": "Slack Marketplace review process", "kind": "official", "accessed": "2026-10-20" }
+    ],
+    "checked": [
+      "Confirmed private installs need no review; Marketplace listing is optional.",
+      "Confirmed 10+ active-workspace prerequisite and review timelines (up to 10 business days preliminary, up to 10 weeks functional)."
+    ],
+    "corrected": [
+      "Slack docs moved from api.slack.com to docs.slack.dev; cited the current docs.slack.dev URLs."
+    ],
+    "uncertain": []
+  },
+  "generatedBy": "curated",
+  "generatedAt": "2026-10-20T00:00:00Z",
+  "model": null,
+  "query": null
+}

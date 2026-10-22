@@ -8,9 +8,9 @@ A dependency-free script, `scripts/sync-shared.mjs`, copies `shared/` into `fron
 
 The frontend bundles the curated guides, so the library works even while Render is cold. It only talks to the backend for live generation and for live-generated guide permalinks. Live generation runs as one long `POST /api/generate` request that streams Server-Sent Events. The backend pipeline goes: resolve, Tavily search (3 parallel queries), Tavily extract (top 5 pages), OpenAI structured draft, OpenAI verification pass, deterministic post-processing (`normalizeDraft`, URL allow-listing, confidence capping, schema validation), save, then emit.
 
-This is revision 2. It resolves every finding in `design-review.md`; see "Responses to design review" at the end.
+This is revision 3. It resolves every finding in the round-2 `design-review.md` (and keeps the round-1 resolutions); see "Responses to design review" at the end.
 
-The workspace is currently empty except `.gitignore` (it already ignores `node_modules`, `dist`, `.env*` except `.env.example`, and `submission/.tmp/`). Node v22.21.0 and npm 10.9.4 are installed locally.
+The workspace is currently empty except `.gitignore` and `.agents/`. The existing `.gitignore` ignores `node_modules/`, `dist/`, `submission/.tmp/` and only `.env`, `.env.local`, `.env.*.local` (so `.env.production` would currently be committable). The implementation replaces those three env lines as described in "Additions to `.gitignore`" below. Node v22.21.0 and npm 10.9.4 are installed locally.
 
 ## Technology stack (locked)
 
@@ -80,6 +80,25 @@ Root `package.json` holds convenience scripts only and has no dependencies:
 
 `frontend/vitest.config.ts` sets `environment: 'jsdom'`, `globals: true` (which the `vitest/globals` types require), and `setupFiles: ['src/test/setup.ts']`.
 
+`frontend/package.json` has `"type": "module"`, so every `.js` config file is ESM. The two style configs are exactly:
+
+```js
+// frontend/postcss.config.js
+export default { plugins: { tailwindcss: {}, autoprefixer: {} } };
+```
+
+```ts
+// frontend/tailwind.config.ts
+import type { Config } from 'tailwindcss';
+export default {
+  content: ['./index.html', './src/**/*.{ts,tsx}'],
+  theme: { extend: { /* ink-950/ink-900 colors, font families, keyframes from "Visual system" */ } },
+  plugins: [],
+} satisfies Config;
+```
+
+Tailwind 3.4 loads a `.ts` config natively (it bundles `jiti`), so no extra dependency is needed.
+
 `backend/tsconfig.json`. Tests live in `test/` and are outside `include`, so they don't violate `rootDir`. Vitest transpiles them with esbuild, and they're not type-checked by `tsc`.
 
 ```json
@@ -128,8 +147,9 @@ Root `package.json` holds convenience scripts only and has no dependencies:
   src/middleware/cors.ts | rateLimit.ts | concurrency.ts | errorHandler.ts | asyncHandler.ts
   src/store/types.ts | memoryStore.ts | fileStore.ts | upstashStore.ts | index.ts
   src/agent/input.ts       validate + normalize app input
+  src/agent/sources.ts     registrableDomain(), brandTokens(), classifySource()
   src/agent/tavily.ts      search(), extract()
-  src/agent/llm.ts         draftGuide(), verifyGuide()
+  src/agent/llm.ts         createLlm(client, model, log) -> { draft, verify }
   src/agent/prompts.ts
   src/agent/draftSchema.ts GuideDraftSchema, VerificationSchema (LLM-facing)
   src/agent/postprocess.ts assembleGuide(), allow-listing, confidence capping
@@ -158,7 +178,10 @@ Root `package.json` holds convenience scripts only and has no dependencies:
   screenshots/*.jpg (committed)   Composio_OAuth_Guide_Agent_Submission.pdf (committed output)
 ```
 
-Additions to `.gitignore`: `frontend/src/generated/`, `backend/src/generated/`, `backend/.data/`.
+Changes to `.gitignore`:
+
+- Add `frontend/src/generated/`, `backend/src/generated/`, `backend/.data/`.
+- Replace the three lines `.env`, `.env.local`, `.env.*.local` with `.env*`, keeping `!.env.example` immediately after it (order matters: the negation must follow the wildcard). This ignores `.env.production`, `.env.development`, etc. in every package while keeping both `.env.example` files tracked.
 
 ## Shared code: sync-shared decision
 
@@ -340,7 +363,12 @@ export interface ApiErrorBody { error: { code: ErrorCode; message: string; retry
 
 `shared/schema.ts` imports only `zod`, so the same file compiles in both apps. The server-only code `CLIENT_GONE` is not in `ErrorCode`. It lives on `AgentError` (see Backend), so it can never be sent over the wire by type.
 
-Brand uses a monogram and hex color rather than logo images. That avoids hot-linking trademarked assets and broken image URLs. Curated guides use `z.input` shape in JSON, so `default`s can be omitted, but authors should write all fields explicitly. The typed `Guide[]` annotation in the generated file uses `z.input<typeof GuideSchema>` (exported as `GuideInput`) for that reason.
+Brand uses a monogram and hex color rather than logo images. That avoids hot-linking trademarked assets and broken image URLs. Curated guides use `z.input` shape in JSON, so `default`s can be omitted, but authors should write all fields explicitly.
+
+Authoring rules for date fields (zod's `datetime()` without `{ offset: true }` rejects offsets):
+
+- `generatedAt` must be UTC with a `Z` suffix, e.g. `2026-10-20T00:00:00Z`. `2026-10-20T00:00:00+05:30` fails `GuideSchema`. Live guides use `now.toISOString()`, which always ends in `Z`.
+- `verification.lastVerified` and `sources[].accessed` are plain `YYYY-MM-DD` calendar dates. The typed `Guide[]` annotation in the generated file uses `z.input<typeof GuideSchema>` (exported as `GuideInput`) for that reason.
 
 ### Evidence level semantics (shown on About page and in PDF)
 
@@ -391,34 +419,66 @@ Aliases are required on every curated guide. Examples:
 - stripe-connect: `stripe`
 - salesforce: `salesforce`, `sfdc`
 
-Candidate official source URLs follow. They're starting points only. Each one must pass `check-links`, and must be replaced by the current page if it redirects to something unrelated or 404s. Never add a URL that hasn't been checked.
+Canonical official source URLs are below. These are the post-redirect URLs, and the design review confirmed every one returned HTTP 200 on 2026-10-20. Every guide has at least 2, which satisfies AC 1. All are `kind: 'official'`. Authors must still read each page before citing it for a specific claim. A section's `sourceRefs` may only point at a page that actually states that section's claims. A URL not in this table may be added only after it passes `check-links` with status `ok`. Never add an unchecked URL.
 
-- GitHub: `https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/creating-an-oauth-app`, `…/authorizing-oauth-apps`, `…/scopes-for-oauth-apps`
-- Google: `https://support.google.com/cloud/answer/9110914`, `https://developers.google.com/identity/protocols/oauth2`, `https://developers.google.com/gmail/api/auth/scopes`, `https://appdefensealliance.dev/casa`
-- Slack: `https://api.slack.com/authentication/oauth-v2`, `https://api.slack.com/start/distributing/directory`
-- Notion: `https://developers.notion.com/docs/authorization`
-- Stripe: `https://docs.stripe.com/connect/oauth-reference`
-- Shopify: `https://shopify.dev/docs/apps/launch/app-requirements-checklist`, `https://shopify.dev/docs/apps/build/authentication-authorization`
-- Discord: `https://discord.com/developers/docs/topics/oauth2`
-- Zoom: `https://developers.zoom.us/docs/integrations/oauth/`
-- Salesforce: `https://help.salesforce.com/s/articleView?id=sf.connected_app_overview.htm&type=5`
-- HubSpot: `https://developers.hubspot.com/docs/api/oauth-quickstart-guide`
-- Microsoft: `https://learn.microsoft.com/en-us/entra/identity-platform/quickstart-register-app`, `https://learn.microsoft.com/en-us/entra/identity-platform/publisher-verification-overview`
-- Atlassian: `https://developer.atlassian.com/cloud/jira/platform/oauth-2-3lo-apps/`
-- Linear: `https://developers.linear.app/docs/oauth/authentication`
-- Figma: `https://www.figma.com/developers/api#oauth2`
+| guide | sources (≥2) |
+|---|---|
+| github | `https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/creating-an-oauth-app`, `https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/authorizing-oauth-apps`, `https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/scopes-for-oauth-apps` |
+| google-workspace | `https://developers.google.com/identity/protocols/oauth2`, `https://developers.google.com/workspace/gmail/api/auth/scopes`, `https://support.google.com/cloud/answer/13463073`, `https://appdefensealliance.dev/casa` |
+| slack | `https://docs.slack.dev/authentication/installing-with-oauth/`, `https://docs.slack.dev/slack-marketplace/slack-marketplace-app-guidelines-and-requirements/`, `https://docs.slack.dev/slack-marketplace/slack-marketplace-review-guide/` |
+| notion | `https://developers.notion.com/guides/get-started/authorization`, `https://developers.notion.com/guides/get-started/quick-start` |
+| stripe-connect | `https://docs.stripe.com/connect/oauth-reference`, `https://docs.stripe.com/connect/oauth-standard-accounts` |
+| shopify | `https://shopify.dev/docs/apps/build/authentication-authorization`, `https://shopify.dev/docs/apps/launch/shopify-app-store/best-practices` |
+| discord | `https://docs.discord.com/developers/topics/oauth2`, `https://docs.discord.com/developers/topics/permissions` |
+| zoom | `https://developers.zoom.us/docs/integrations/oauth/`, `https://developers.zoom.us/docs/distribute/app-review-process/` |
+| salesforce | `https://help.salesforce.com/s/articleView?id=sf.connected_app_overview.htm&type=5`, `https://developer.salesforce.com/docs/platform/api-rest/guide/intro-oauth-and-connected-apps.html` |
+| hubspot | `https://developers.hubspot.com/docs/apps/legacy-apps/authentication/oauth-quickstart-guide`, `https://developers.hubspot.com/docs/apps/legacy-apps/authentication/working-with-oauth` |
+| microsoft-entra | `https://learn.microsoft.com/en-us/entra/identity-platform/quickstart-register-app`, `https://learn.microsoft.com/en-us/entra/identity-platform/publisher-verification-overview` |
+| atlassian-jira | `https://developer.atlassian.com/cloud/jira/platform/oauth-2-3lo-apps/`, `https://developer.atlassian.com/cloud/jira/platform/scopes-for-oauth-2-3LO-and-forge-apps/` |
+| linear | `https://linear.app/developers/oauth-2-0-authentication`, `https://linear.app/developers/oauth-actor-authorization`, `https://linear.app/developers/graphql` |
+| figma | `https://developers.figma.com/docs/rest-api/authentication/`, `https://developers.figma.com/docs/rest-api/oauth-apps/`, `https://developers.figma.com/docs/rest-api/scopes/` |
+
+Content notes for authors:
+
+- **HubSpot.** The OAuth pages now live under `legacy-apps/`. The guide must say which flow a new app uses: the newer developer-platform ("projects") flow or the legacy public-app flow. If the official pages don't settle it, `confidence.steps` is `uncertain` with a `verification.uncertain` entry. Either way, the move is logged in `08-evidence-log.md` under "learned".
+- **Figma.** Read the `oauth-apps` page to settle the review question. If it states that public OAuth apps need Figma's review or approval, switch to `review.required: true`, `types: ['app-review']`, add a stage, and log the change in `verification.corrected` and the evidence log. If it doesn't, keep the uncertain encoding described above.
+- **Moved pages.** Each old candidate URL from earlier drafts (e.g. `api.slack.com/...` → `docs.slack.dev/...`, `discord.com/developers/docs/...` → `docs.discord.com/developers/...`, Google `answer/9110914` → `answer/13463073`) gets one line in the evidence log's "corrected" list. This shows the drift the agent has to cope with.
 
 `lastVerified` is the date the author performed the check (on or after 2026-10-20). Corrections made during authoring go into that guide's `verification.corrected` and into `submission/content/08-evidence-log.md`. Examples: a doc URL that moved, or a wait-time claim downgraded to community.
 
 ### `scripts/check-links.mjs`
 
-Collects every URL in `shared/guides/*.json`: `verification.sources[].url`, `steps[].consoleUrl`, and `app.website`. It fetches each with `GET`, `redirect: 'follow'`, a browser-like `User-Agent`, a 15 s `AbortSignal.timeout`, and concurrency 4. Results are classified:
+Collects every URL in `shared/guides/*.json`: `verification.sources[].url`, `steps[].consoleUrl`, and `app.website`. Each URL is deduped, and the guides citing it are kept as `guides: string[]`. It fetches each with `GET`, `redirect: 'follow'`, a browser-like `User-Agent`, and concurrency 4 (a small worker pool over the URL list).
 
-- `ok`: 2xx after redirects
-- `blocked`: 401/403/429, typical bot protection on support.google.com and help.salesforce.com. This needs manual browser confirmation, which the author records in the evidence log.
-- `broken`: 404/410/5xx or a network error
+Timeouts use a ref'd timer per URL, not `AbortSignal.timeout`. Its unref'd timer was observed letting Node exit with a fetch still pending, so a URL silently went missing from the report.
 
-It writes `shared/link-check-report.json` as `{ checkedAt, results: [{ url, guide, status, httpStatus, finalUrl }] }`, prints a table, and exits 1 if any result is `broken`. It isn't part of `npm test` because it needs the network.
+```js
+async function checkOne(url) {
+  const ac = new AbortController();
+  const t = setTimeout(() => ac.abort(), 15_000);   // ref'd: keeps the event loop alive
+  try {
+    const res = await fetch(url, { redirect: 'follow', signal: ac.signal, headers: { 'User-Agent': UA } });
+    res.body?.cancel().catch(() => {});             // don't download bodies
+    return classifyResponse(url, res.status, res.url);
+  } catch (err) {
+    return { url, status: 'broken', httpStatus: null, finalUrl: null,
+             error: ac.signal.aborted ? 'timeout after 15s' : String(err?.cause?.code ?? err?.message ?? err) };
+  } finally { clearTimeout(t); }
+}
+```
+
+Results are classified in this order:
+
+1. `blocked`: 401/403/429 (typical bot protection on support.google.com and help.salesforce.com). This needs manual browser confirmation, which the author records in the evidence log. It doesn't fail the run.
+2. `broken`: 404/410/5xx, any other non-2xx, a network error, or the timeout (`httpStatus: null`). This fails the run.
+3. `redirected`: 2xx, but `normalize(finalUrl) !== normalize(url)`. This doesn't fail the run. The table prints "update to {finalUrl}", and the author must replace the stored URL with the final URL and add a line to the evidence log. They must first open it, because a redirect to a generic landing page (as Linear's old docs URL did) means the citation is wrong rather than merely moved. If it landed somewhere unrelated, the author finds the correct page.
+4. `ok`: 2xx with the same normalized URL.
+
+`normalize(u)` parses with `new URL()`, drops the hash, lowercases the host, deletes the query params `hl`, `language`, `visit_id` and `rd`, sorts the remaining params, and strips one trailing `/` from the pathname. Both sides are normalized before comparing. Scheme and path case are preserved.
+
+After the pool finishes, the script asserts `results.length === urls.length`. If that fails, it prints the missing URLs and exits 1, so a URL can never silently drop out of the report.
+
+It writes `shared/link-check-report.json` as `{ checkedAt, results: [{ url, guides, status, httpStatus, finalUrl, error? }] }` (status ∈ `ok`|`redirected`|`blocked`|`broken`). It prints a table plus counts per status. It exits 1 if anything is `broken` or missing, and exits 0 otherwise, even with `redirected` entries; the README says to treat those as to-dos before submission. It isn't part of `npm test` because it needs the network. The PDF's `LINK_CHECK_TABLE` shows the four counts and lists `blocked` and `redirected` URLs.
 
 ## Backend design
 
@@ -428,7 +488,7 @@ Env is parsed once with zod. An invalid value (e.g. `RATE_LIMIT_MAX=abc`) is fat
 
 | var | type / default | notes |
 |---|---|---|
-| PORT | int, 8787 | Render injects PORT |
+| PORT | int, 8787 | `render.yaml` sets 10000 (Render's default, which Render also injects) |
 | NODE_ENV | `development`\|`production`\|`test`, development | |
 | ALLOWED_ORIGINS | csv, `http://localhost:5173,http://localhost:4173` | trimmed, trailing `/` stripped, empty entries dropped, exact match. Unset, `""`, or all-whitespace → the defaults |
 | OPENAI_API_KEY | string, optional | secret |
@@ -445,7 +505,7 @@ Env is parsed once with zod. An invalid value (e.g. `RATE_LIMIT_MAX=abc`) is fat
 | TRUST_PROXY | int 0–5, 1 | passed to `app.set('trust proxy', n)` |
 | LOG_LEVEL | `debug`\|`info`\|`warn`\|`error`, info | |
 
-`config.llmConfigured = !!OPENAI_API_KEY` and `config.searchConfigured = !!TAVILY_API_KEY`.
+`config.llmConfigured = !!OPENAI_API_KEY` and `config.searchConfigured = !!TAVILY_API_KEY`. `config.ts` also exports `CONFIG_KEYS`, a readonly array of the 17 env names in this table (both Upstash vars listed separately). The env parity test uses it.
 
 Before zod parsing, every env value is passed through `v => (v === undefined || v.trim() === '' ? undefined : v)`. Render lets you save `sync: false` vars blank, and zod `.default()` only applies to `undefined`, so this makes blank and unset mean the same thing. The same pre-pass means a blank `OPENAI_API_KEY` counts as "not configured".
 
@@ -525,7 +585,19 @@ router.post('/',
    }
    ```
 
-6. **`limiter`.** `rateLimit({ windowMs, limit, standardHeaders: 'draft-7', legacyHeaders: false, handler })`. The handler calls `releaseSlot(res)`, then sends 429 `RATE_LIMITED` with `retryAfterSec = ceil((req.rateLimit.resetTime - now)/1000)` and a `Retry-After` header. The limiter runs after the slot is taken, so a BUSY rejection never consumes quota.
+6. **`limiter`.** `rateLimit({ windowMs, limit, standardHeaders: 'draft-7', legacyHeaders: false, handler })`. The handler calls `releaseSlot(res)`, then sends 429 `RATE_LIMITED` with a `Retry-After` header and `retryAfterSec` in the body. The limiter runs after the slot is taken, so a BUSY rejection never consumes quota. `req.rateLimit` isn't declared on Express's `Request` type (TS2339), so the handler casts:
+
+   ```ts
+   import { rateLimit, type AugmentedRequest } from 'express-rate-limit';
+   const limiter = rateLimit({ windowMs, limit, standardHeaders: 'draft-7', legacyHeaders: false,
+     handler: (req, res) => {
+       releaseSlot(res);
+       const reset = (req as AugmentedRequest).rateLimit.resetTime;          // Date | undefined
+       const retryAfterSec = Math.max(1, Math.ceil(((reset?.getTime() ?? Date.now() + windowMs) - Date.now()) / 1000));
+       res.setHeader('Retry-After', String(retryAfterSec));
+       sendError(res, 429, 'RATE_LIMITED', `Hourly limit reached. Try again in ${Math.ceil(retryAfterSec / 60)} min.`, retryAfterSec);
+     } });
+   ```
 7. **`runGeneration`** opens SSE and runs the pipeline (see Abort semantics). It calls `releaseSlot(res)` in `finally`.
 
 `src/middleware/concurrency.ts` exports `createConcurrency(max)` → `{ tryAcquire(): boolean; release(): void; readonly active: number }`. `tryAcquire` is `if (active >= max) return false; active++; return true`, which is safe because Node runs it on one thread with no await. `releaseSlot(res)` is idempotent per request: `if (res.locals.slot) { res.locals.slot = false; concurrency.release(); }`. Release is wired three ways (the `close` listener, the limiter handler, and `finally`) so that every path frees the slot exactly once, including errors routed to `errorHandler`.
@@ -535,7 +607,9 @@ All pre-stream errors use the shape `{ error: { code, message, retryAfterSec? } 
 ### Input normalization (`src/agent/input.ts`)
 
 ```ts
-export interface AppInput { raw: string; kind: 'name' | 'url'; displayName: string;
+export interface AppInput {
+  raw: string;            // the input after rule 2 (trimmed, spaces collapsed), so it is ≤200 chars and fits Guide.query
+  kind: 'name' | 'url'; displayName: string;
   key: string;            // lowercase [a-z0-9] only, e.g. "googleworkspace"
   domainHint: string | null } // e.g. "slack.com"
 export function normalizeAppInput(raw: string): { ok: true; value: AppInput } | { ok: false; message: string }
@@ -567,6 +641,7 @@ Built once from `generated/curatedGuides.ts`. It validates every guide with `Gui
 - `byKey: Map<string, Guide>` from `slug.replace(/-/g,'')`, the normalized `app.name`, and `aliases`
 - `summaries: GuideSummary[]`
 - `match(key)`, which checks `byKey.get(key)`
+- `officialDomainsFor(key): Set<string>`, which returns the registrable domains (`registrableDomain(new URL(s.url).hostname)`, see "Source classification") of every `kind: 'official'` source of `match(key)`, or an empty set when there's no match. Because curated hits short-circuit unless `force: true`, this set is non-empty only on forced re-research of a curated app (e.g. `stripe-connect` → `{stripe.com}`).
 
 ### SSE protocol (`src/sse.ts`)
 
@@ -637,9 +712,10 @@ const ac = new AbortController();
 const timer = setTimeout(() => ac.abort(new AgentError('TIMEOUT',
   'Generation took too long and was stopped. Please try again.', true)), config.generationTimeoutMs);
 res.on('close', () => { if (!res.writableEnded) ac.abort(new AgentError('CLIENT_GONE', 'client disconnected')); });
-const sse = openSse(res); sse.send({ event: 'meta', data: { … } });
+const sse = openSse(res); sse.send({ event: 'meta', data: buildMeta(requestId, input, now, force) });
 try {
-  const guide = await deps.runPipeline(input, { signal: ac.signal, emit: sse.send, requestId, deps: pipelineDeps });
+  const guide = await deps.runPipeline(input, { signal: ac.signal, emit: sse.send, requestId,
+    curatedDomains: curated.officialDomainsFor(input.key), deps: pipelineDeps });
   sse.send({ event: 'done', data: { ok: true, slug: guide.slug, durationMs } });
 } catch (err) {
   const e = classify(err, ac.signal);
@@ -649,6 +725,16 @@ try {
 ```
 
 Use `res`, not `req`, for 'close'. On Node ≥ 16, `req` 'close' fires as soon as the request body has been consumed, which would abort every run.
+
+`requestId` = nanoid `customAlphabet('0123456789abcdefghijklmnopqrstuvwxyz', 12)()`, generated in `validateBody` and stored on `res.locals.requestId`, so the short-circuit path and logs use the same id. `now = deps.now()` is captured once per request. `force` is the parsed body flag. Both the short-circuit path and `runGeneration` build `meta` with one helper in `src/sse.ts`:
+
+```ts
+export const buildMeta = (requestId: string, input: AppInput, now: Date, force: boolean) =>
+  ({ requestId, query: input.raw, appName: input.displayName, key: input.key,
+     startedAt: now.toISOString(), force }) satisfies Extract<StreamEvent, { event: 'meta' }>['data'];
+```
+
+`query` is `input.raw` (trimmed, ≤200 chars). The UI displays `appName`, never `query`. `durationMs` in `done` is `Date.now() - now.getTime()`.
 
 `classify(err, signal)` applies these rules in order:
 
@@ -664,28 +750,44 @@ Rules inside the pipeline and adapters:
   - 429/432/433 → `SEARCH_FAILED` "Search quota exceeded" (retryable false).
   - Any other non-2xx, network error, or per-call timeout → `SEARCH_FAILED` "Search provider unavailable" (retryable true).
   - A non-JSON body or a missing `results` array → treated as an empty result.
-- `llm.ts` builds `new OpenAI({ apiKey, maxRetries: 1, timeout: 50_000 })` for the draft and passes `{ signal, timeout: 40_000 }` per request for the verifier. The SDK's single built-in retry covers transient 408/409/429/5xx and connection errors. The 120 s global timeout is the backstop: worst case, the user gets a retryable `TIMEOUT`. Mapping in `draftGuide`/`verifyGuide`:
+- Exactly one OpenAI client per process, `new OpenAI({ apiKey, maxRetries: 1 })`, with no client-level timeout. `server.ts` constructs it (only when `llmConfigured`) and passes it to `createLlm(client, model, log)` in `llm.ts`, which returns `{ draft, verify }` matching `PipelineDeps`. Tests pass a stub client exposing only `beta.chat.completions.parse`. Each call passes its own request options: `{ signal, timeout: 50_000 }` for the draft (including the repair retry) and `{ signal, timeout: 40_000 }` for the verifier. The SDK's single built-in retry covers transient 408/409/429/5xx and connection errors. The 120 s global timeout is the backstop: worst case, the user gets a retryable `TIMEOUT`. Mapping in `draft`/`verify`:
   - Check `signal.aborted` first and rethrow `signal.reason`.
   - `OpenAI.AuthenticationError` / `PermissionDeniedError` → `LLM_FAILED` "LLM provider rejected the API key" (false).
   - `RateLimitError` with `code === 'insufficient_quota'` → `LLM_FAILED` "LLM quota exhausted" (false).
   - `BadRequestError` → `LLM_FAILED` "The LLM rejected the request" (false). This is logged at `error` with `err.message`, because it usually means a schema/strict-mode problem.
   - `APIConnectionTimeoutError`, `APIConnectionError`, `InternalServerError`, other `RateLimitError`, or any other `APIError` → `LLM_FAILED` "The LLM provider failed to respond" (true).
-  - `LengthFinishReasonError` / `ContentFilterFinishReasonError` (thrown by `.parse`) and `message.parsed === null` (refusal) → `DraftInvalid`, which triggers the single repair retry below.
+  - `LengthFinishReasonError` / `ContentFilterFinishReasonError` (thrown by `.parse`) and `message.parsed === null` (refusal) → `DraftInvalid`, which triggers the single repair retry below. In openai 4.73.0 these two classes are not on the `OpenAI` namespace or the package root. They're imported as `import { LengthFinishReasonError, ContentFilterFinishReasonError } from 'openai/error';`, which resolves under NodeNext. The HTTP error classes stay as `OpenAI.AuthenticationError`, `OpenAI.RateLimitError`, etc., which are present on the namespace.
+  - `DraftInvalid` is a module-private class in `llm.ts`, `class DraftInvalid extends Error { constructor(public issues: string[]) }`. The pipeline catches it by `instanceof` and never lets it escape `runPipeline`.
 - The repair retry (draft again with the zod issues appended) happens at most once per run, and never after an abort.
 
 ### Agent pipeline (`src/agent/pipeline.ts`)
 
 ```ts
+/** Variable part of a Tavily search. tavily.ts adds the fixed params (search_depth, max_results, …). */
+export interface TavilySearchReq { query: string; include_domains?: string[] }
+export interface TavilyResult { url: string; title: string; content: string; score: number }
+/** One numbered source as shown to the LLM. `index` is the [i] used by draft `sourceIndexes`. */
+export interface PromptSource { index: number; url: string; title: string; kind: 'official' | 'community';
+  content: string;        // extracted raw_content (≤8,000 chars) or the search snippet
+  snippetOnly: boolean }  // true when extract failed or the source was outside the top 5
+export interface DraftArgs { input: AppInput; sources: PromptSource[];
+  repairIssues: string[] | null }   // null on the first attempt; ≤10 "path: message" strings on the repair retry
+export interface VerifyArgs { draft: GuideDraft; sources: PromptSource[] }
+
 export interface PipelineDeps {
   search(q: TavilySearchReq, signal: AbortSignal): Promise<TavilyResult[]>;
   extract(urls: string[], signal: AbortSignal): Promise<{ url: string; content: string }[]>;
-  draft(args: DraftArgs, signal: AbortSignal): Promise<GuideDraft>;
+  draft(args: DraftArgs, signal: AbortSignal): Promise<GuideDraft>;   // throws DraftInvalid for refusal/length/filter
   verify(args: VerifyArgs, signal: AbortSignal): Promise<Verification>;
   store: GuideStore; now(): Date; log: Logger; model: string; cacheTtlSec: number;
 }
-export async function runPipeline(input: AppInput, ctx: { signal: AbortSignal;
-  emit: (e: StreamEvent) => void; requestId: string; deps: PipelineDeps }): Promise<Guide>
+export interface PipelineCtx { signal: AbortSignal; emit: (e: StreamEvent) => void; requestId: string;
+  curatedDomains: Set<string>;      // from curated.officialDomainsFor(input.key); empty for non-curated apps
+  deps: PipelineDeps }
+export async function runPipeline(input: AppInput, ctx: PipelineCtx): Promise<Guide>
 ```
+
+`tavily.ts` maps a raw search hit into `TavilyResult` by coercing missing `title`/`content` to `''` and missing `score` to `0`. It drops hits without a string `url`. Extract `raw_content` maps to `content`. `PromptSource.index` equals the candidate-list position, which is also `source.index` in the SSE event and `i` in `read-{i}`.
 
 `server.ts` builds real deps from `tavily.ts` and `llm.ts`. Tests inject fakes. `GuideDraft` and `Verification` are the `z.infer` types from `draftSchema.ts`. `runPipeline` emits only `step`, `source` and `guide`. It returns the guide, or throws an `AgentError` (or the abort reason).
 
@@ -703,8 +805,57 @@ Merge rules:
 
 - Dedupe by URL without hash and trailing slash.
 - Drop non-https URLs.
-- Classify `official` if the hostname's last two labels equal `domainHint`, or the hostname contains `key` (or a ≥4-char alias token), or a curated alias. Otherwise `community`.
+- Classify each URL with `classifySource` (below).
 - Rank official first, then by `score`. Keep the top 10 as the candidate source list (`sources[0..n)`).
+
+**Source classification** (`src/agent/sources.ts`, pure and exported for unit tests). `kind` decides whether a section may stay `verified`, so the rule is exact:
+
+```ts
+/** Last two hostname labels. Deliberately no public-suffix list: same rule as input.ts domainHint. */
+export const registrableDomain = (hostname: string) => hostname.toLowerCase().split('.').slice(-2).join('.');
+
+/** Generic words that are never brand evidence on their own. */
+const GENERIC_TOKENS = new Set(['apps', 'cloud', 'connect', 'teams', 'team', 'platform', 'developer',
+  'developers', 'docs', 'online', 'software', 'suite', 'workspace', 'graph', 'studio', 'labs', 'mail',
+  'calendar', 'drive', 'chat', 'meet', 'service', 'services', 'api', 'app', 'help', 'support', 'blog']);
+
+export function brandTokens(input: AppInput): Set<string> {
+  const words = input.displayName.normalize('NFKD').toLowerCase().split(/[^a-z0-9]+/)
+    .filter(t => t.length >= 4 && !GENERIC_TOKENS.has(t));
+  return new Set([input.key, ...words]);
+}
+
+export function classifySource(url: URL, input: AppInput, curatedDomains: Set<string>): 'official' | 'community' {
+  const labels = url.hostname.toLowerCase().split('.');
+  const registrable = labels.slice(-2).join('.');         // "microsoft.com", "shopify.dev"
+  const brandLabel = labels.at(-2) ?? '';                  // "microsoft", "shopify"
+  if (input.domainHint && registrable === input.domainHint) return 'official';
+  if (brandTokens(input).has(brandLabel)) return 'official'; // exact label match, never substring
+  if (curatedDomains.has(registrable)) return 'official';  // only populated on force:true for curated apps
+  return 'community';
+}
+```
+
+`input.key` is always included, even if it's short or generic, because it's the user's own app name (e.g. key `zoom` matches `developers.zoom.us`). `GENERIC_TOKENS` only filters the extra displayName words, so "Stripe Connect" can't mark `connect.com` official, and "Microsoft Teams" can't mark `teams.com` official.
+
+Known limitation: under the two-label rule, multi-part public suffixes (`example.co.uk` → `co.uk`, brand label `co`) never match by brand. They fall back to `domainHint` equality, which uses the same rule, so a pasted `.co.uk` URL still matches itself. The worst case is an official page labelled `community`, which only lowers confidence and never raises it. This is listed in the PDF's limitations.
+
+Unit cases (`sources.test.ts`):
+
+| URL | input | expected |
+|---|---|---|
+| `https://developers.asana.com/docs/oauth` | "Asana" | official |
+| `https://asanaalternatives.io/x` | "Asana" | community |
+| `https://bestasana.blog/x` | "Asana" | community |
+| `https://learn.microsoft.com/en-us/graph/auth` | "Microsoft Teams" | official |
+| `https://teams.com/` | "Microsoft Teams" | community |
+| `https://medium.com/@x/asana-oauth` | "Asana" | community |
+| `https://shopify.dev/docs/apps` | "Shopify" | official |
+| `https://developers.zoom.us/docs/` | "Zoom" | official |
+| `https://connect.com/` | "Stripe Connect" | community |
+| `https://docs.stripe.com/connect` | "Stripe Connect" | official |
+| `https://app.example.io/` | URL input `example.io` (domainHint `example.io`) | official |
+| `https://stripe.com/docs` | "Payments Thing" with `curatedDomains = {stripe.com}` | official |
 
 Failure handling:
 
@@ -719,7 +870,7 @@ Failure handling:
 - If extract throws entirely, every read step is marked `failed`, all sources fall back to snippets (`warn`), and the run continues.
 - Remaining candidates (indexes 5–9) are passed to the LLM as snippet-only sources.
 
-**Stage 4, draft.** `client.beta.chat.completions.parse({ model, temperature: 0.2, response_format: zodResponseFormat(GuideDraftSchema, 'guide_draft'), messages }, { signal, timeout: 60000 })`, with the client created as `new OpenAI({ apiKey, maxRetries: 1 })`.
+**Stage 4, draft.** `client.beta.chat.completions.parse({ model, temperature: 0.2, response_format: zodResponseFormat(GuideDraftSchema, 'guide_draft'), messages }, { signal, timeout: 50_000 })`, using the single shared client from "Abort, timeout and error mapping".
 
 The system prompt (`prompts.ts`) states:
 
@@ -768,12 +919,17 @@ Failure (any error except abort) is non-fatal: emit `step verify failed "Verific
 - `consoleUrl`: keep only if `https:` and its hostname's last two labels equal those of some retrieved source. Otherwise null.
 - Confidence per section = min(draft level, verifier level). Then downgrade `verified` → `community` when no official source is in `sourceRefs`. If `verification` is null, cap every section at `community` and push "Automated verification pass did not complete; treat this guide as unverified." to `verification.uncertain`.
 - `verification.checked/corrected/uncertain` come from the verifier, each capped at 15 items, with strings truncated.
-- Brand: `color` from the draft if it's valid hex, else `#6366F1`. `monogram` = first 1–2 alphanumerics of `displayName`, uppercased.
+- Brand: `color` from the draft if it's valid hex, else `#6366F1`. `monogram = input.key.slice(0, 2).toUpperCase()`. `key` is non-empty `[a-z0-9]` by construction, so this always matches `/^[A-Za-z0-9]{1,3}$/`, including for non-ASCII names ("Ünity" → key `unity` → `UN`).
+- `verification.lastVerified = now.toISOString().slice(0, 10)` (UTC date of the run). Every kept source gets `accessed` = the same date.
 - Truncate strings and arrays to schema limits (helper `clampToSchemaLimits` with constants mirrored from the schema).
 - Set `generatedBy: 'live-agent'`, `generatedAt: now.toISOString()`, `model`, `query: input.raw`, `aliases: []`, and `schemaVersion: 1`.
 - Finally `GuideSchema.parse`. Failure here triggers the stage-4 retry path (draft again with the issues), at most once overall.
 
-**Stage 7, save.** `store.put(guide)`, then `store.setCache(input.key, guide.slug, cacheTtlSec)`. Failure → `step save failed`, `persisted: false`, logged at `error`. The guide is still emitted; the UI hides the share button and shows "This guide couldn't be saved; copy it now."
+**Stage 7, save.** `persisted` means only "the permalink works", i.e. `store.put` succeeded:
+
+1. `await store.put(guide)`. If it throws (after the abort check): `step save failed "Couldn't save a shareable link"`, `persisted: false`, logged at `error`, and `setCache` is skipped. The guide is still emitted; the UI hides the share button and shows "This guide couldn't be saved; copy it now."
+2. Otherwise `await store.setCache(input.key, guide.slug, cacheTtlSec)`. If that throws (after the abort check): log `warn`, keep `persisted: true`, and mark `step save done` with detail "Saved (cache unavailable)". The permalink works; only the next same-app request misses the cache.
+3. Both succeed: `step save done "Saved shareable guide"`, `persisted: true`.
 
 Then emit `guide { origin: 'fresh', cached: false, persisted }` and return. The route emits `done`.
 
@@ -889,7 +1045,8 @@ For trust-proxy diagnosis, each generate request logs `{ requestId, ip: req.ip, 
 | any stage | outer signal aborted | no | per `signal.reason`: `TIMEOUT` or nothing | warn / info |
 | verify | any error | yes | `step verify failed`, capped confidence | warn |
 | assemble | schema invalid after retry | no | `error LLM_FAILED` | error |
-| save | store error | yes | `guide {persisted:false}` | error |
+| save (`put`) | store error | yes | `guide {persisted:false}` | error |
+| save (`setCache`) | store error | yes | `guide {persisted:true}`, step detail "Saved (cache unavailable)" | warn |
 | timeout | > GENERATION_TIMEOUT_MS | no | `error TIMEOUT` (retryable) | warn |
 | client disconnect | socket closed | n/a | nothing | info |
 | anything else | thrown | no | `error INTERNAL` (stream) or 500 JSON | error + stack |
@@ -1158,11 +1315,30 @@ services:
         value: "168"
       - key: TRUST_PROXY
         value: "1"
+      - key: PORT
+        value: "10000"        # Render's default port; the app reads PORT
+      - key: STORE
+        value: auto
+      - key: DATA_DIR
+        value: ./.data
+      - key: LOG_LEVEL
+        value: info
 ```
+
+Env parity rule: every key in `backend/.env.example` must appear as a `- key:` entry in `render.yaml`. Secrets (`ALLOWED_ORIGINS`, `OPENAI_API_KEY`, `TAVILY_API_KEY`, `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`) use `sync: false`. Everything else has a value. `render.yaml` may have extra keys (`NODE_VERSION` is Render-only). `DATA_DIR=./.data` resolves against the start command's cwd (`backend/`), giving `backend/.data`, which is gitignored and ephemeral on Render.
+
+`backend/.env.example` format is fixed so the parity test can parse it. It holds one `KEY=value` per line (the value may be empty), with `#` comment lines and blank lines allowed, and no `export` prefix or quotes. It lists all 17 config-table variables: `PORT`, `NODE_ENV`, `ALLOWED_ORIGINS`, `OPENAI_API_KEY`, `OPENAI_MODEL`, `TAVILY_API_KEY`, `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`, `STORE`, `DATA_DIR`, `RATE_LIMIT_MAX`, `RATE_LIMIT_WINDOW_MS`, `MAX_CONCURRENT_GENERATIONS`, `GENERATION_TIMEOUT_MS`, `CACHE_TTL_HOURS`, `TRUST_PROXY`, `LOG_LEVEL`. Secrets are empty and the rest hold their defaults (`PORT=8787` locally).
+
+`backend/test/deployFiles.test.ts` (no network, no YAML dependency) reads `backend/.env.example` and `../render.yaml` relative to the test file via `fileURLToPath(import.meta.url)`. It extracts keys with `/^([A-Z0-9_]+)=/gm` and `/- key: ([A-Z0-9_]+)/g` and asserts:
+
+- The `.env.example` keys are a subset of the `render.yaml` keys (AC 23). On failure the message lists the missing names.
+- `.env.example` contains no value matching `/sk-[A-Za-z0-9]{20}|tvly-[A-Za-z0-9]{10}/` (AC 25).
+- The `render.yaml` text contains `healthCheckPath: /api/health`, `cd backend && npm ci --include=dev && npm run build` and `cd backend && npm start`.
+- The config schema's keys (exported as `CONFIG_KEYS` from `config.ts`) equal the `.env.example` keys, so a new config var can't be added without updating both files.
 
 The backend `build` script is `tsc -p tsconfig.json` (`prebuild` runs the sync). The `start` script is `node dist/server.js`, and `dev` is `tsx watch src/server.ts`. The tsconfig uses `module`/`moduleResolution: NodeNext`, `target: ES2022`, `strict`, `rootDir: src`, `outDir: dist`. Relative imports carry `.js` extensions, which NodeNext requires. `devDependencies` (`typescript`, the `@types/*` packages) are needed at build time. npm omits devDependencies when `NODE_ENV=production` is set in the environment, and render.yaml does set it. The build command therefore uses `npm ci --include=dev`.
 
-`.env.example` files list the variables from the config table with empty values or safe defaults. The frontend one holds `VITE_API_URL=http://localhost:8787`.
+`backend/.env.example` follows the format and key list given under the env parity rule above. The frontend one holds `VITE_API_URL=http://localhost:8787`.
 
 `README.md` covers:
 
@@ -1211,12 +1387,31 @@ When `SUBMISSION_DATE` is null, the build uses today's date in the format "20 Oc
 3. Generated blocks:
    - `ARCHITECTURE_SVG` is the inline contents of `assets/architecture.svg`: Browser/Vercel SPA → Render Express API → Tavily, OpenAI and Store (Upstash/file), with SSE arrows and labels. It's hand-authored with `viewBox`, text as real `<text>`, and no external refs.
    - `SAMPLE_GUIDES` renders `../shared/guides/{github,google-workspace,shopify}.json`. It shows a comparison table (difficulty, hands-on, wait, review types) followed by, per guide, the first 4 steps with actor labels, top 2 blockers, agent/human split, and sources. Every string goes through `escapeHtml`.
-   - `LINK_CHECK_TABLE` comes from `../shared/link-check-report.json`: counts of ok, blocked and broken, plus the list of blocked URLs noted as manually checked.
+   - `LINK_CHECK_TABLE` comes from `../shared/link-check-report.json`: counts of ok, redirected, blocked and broken, plus the blocked URLs (noted as manually checked) and any remaining redirected URLs. If `broken > 0` or `redirected > 0`, the build prints a warning, and it fails unless `--draft` is passed.
    - `SCREENSHOTS` includes every `screenshots/*.jpg` in name order as `<figure><img src="data:image/jpeg;base64,…"><figcaption>` (caption from the filename map). If there are fewer than 4 files, print a warning and fail unless `--draft` is passed.
 4. Title page: project name "OAuth Approval Guide Agent", subtitle "APM Integrations Take-home, Product Intern", candidate email, date, and live links (Vercel app, Render API health, repo). It has `page-break-after: always`.
 5. Write `.tmp/submission.html`, which is gitignored via `submission/.tmp/`.
 6. Launch puppeteer with `headless: true`, `args: ['--no-sandbox']`, and `executablePath` from `PUPPETEER_EXECUTABLE_PATH` if set. If the default launch throws "Could not find Chrome", retry with the first existing of `C:\Program Files\Google\Chrome\Application\chrome.exe`, `C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe`, `C:\Program Files\Microsoft\Edge\Application\msedge.exe`. If none exist, exit 1 with "Run `npx puppeteer browsers install chrome` or set PUPPETEER_EXECUTABLE_PATH."
-7. Render: `page.setContent(html, { waitUntil: 'load' })`, `page.emulateMediaType('print')`, then `page.pdf({ path: 'Composio_OAuth_Guide_Agent_Submission.pdf', format: 'A4', printBackground: true, margin: { top: '16mm', bottom: '18mm', left: '14mm', right: '14mm' }, displayHeaderFooter: true, headerTemplate: '<span></span>', footerTemplate: page X / Y in 8px })`.
+7. Render: `page.setContent(html, { waitUntil: 'load' })`, `page.emulateMediaType('print')`, then `page.pdf`. Every path in the script is anchored to the script's own folder, never the cwd, so `npm run pdf` from the repo root and `node build-pdf.mjs` from `submission/` both write the same file:
+
+   ```js
+   import path from 'node:path';
+   import { fileURLToPath } from 'node:url';
+   const here = path.dirname(fileURLToPath(import.meta.url));          // .../submission
+   const out = path.join(here, 'Composio_OAuth_Guide_Agent_Submission.pdf');
+   // likewise: path.join(here, 'content'), path.join(here, '.tmp', 'submission.html'),
+   //           path.join(here, '..', 'shared', 'guides', 'github.json'), path.join(here, 'links.config.json')
+   await page.pdf({
+     path: out, format: 'A4', printBackground: true,
+     margin: { top: '16mm', bottom: '18mm', left: '14mm', right: '14mm' },
+     displayHeaderFooter: true,
+     headerTemplate: '<span></span>',
+     footerTemplate: '<div style="font-size:8px;width:100%;text-align:center;color:#666">'
+       + '<span class="pageNumber"></span> / <span class="totalPages"></span></div>',
+   });
+   ```
+
+   `pageNumber` and `totalPages` are Chromium's built-in template classes. The footer's inline `font-size` is required, because templates don't inherit page CSS and default to an unreadably small size.
 8. Post-checks, each exiting 1 on failure:
    - File size < 10 MB.
    - The HTML contains `id="<x>"` for every entry of this exact list (a missing content file therefore fails the build):
@@ -1235,7 +1430,7 @@ When `SUBMISSION_DATE` is null, the build uses today's date in the format "20 Oc
 
 `capture-screenshots.mjs`:
 
-- Reads `BASE_URL` (default `http://localhost:4173`, i.e. `vite preview`) and `API_URL` (for the live shot).
+- Reads `BASE_URL` (default `http://localhost:4173`, i.e. `vite preview`) and `API_URL` (for the live shot). It writes to `path.join(here, 'screenshots')`, using the same script-relative `here` as `build-pdf.mjs`.
 - Pre-flight: `fetch(BASE_URL, { signal: AbortSignal.timeout(5000) })`. On failure it exits 1 with "No app at {BASE_URL}. Start `npm --prefix frontend run build` and then `npm --prefix frontend run preview` in another terminal first, or set BASE_URL to the deployed Vercel URL." With `CAPTURE_LIVE=1`, it also pre-checks `{API_URL}/api/health` and exits 1 with a similar message if it's down or not keyed.
 - Launches with `args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist']` so WebGL works in headless mode. Viewport 1440×900 at `deviceScaleFactor: 1`.
 - Captures JPEG quality 82 into `screenshots/`:
@@ -1261,6 +1456,7 @@ Backend (`vitest`, `supertest`, Node environment):
   - Source index 99 dropped, foreign `consoleUrl` set to null, confidence min/cap rules, verifier-null cap, clamping, and slug format.
   - One case per `normalizeDraft` rule: null optional → undefined; empty step dropped; empty `criticalPath` → placeholder; empty `review.types` → `['other']`/`['none']`; inverted and negative durations fixed; empty source title → hostname; invented `app.website` dropped; supported + 0 steps → `unclear` + uncertain note.
   - A "no OAuth" draft (status `not-supported`, empty steps/types/stages) assembles into a valid `GuideSchema` guide.
+  - Monogram from key: input "Ünity" → `UN`, and the guide passes `GuideSchema`. `lastVerified` equals the UTC date of the injected `now` (for `2026-10-20T23:30:00-05:00`, i.e. `2026-10-21T04:30:00Z`, it's `2026-10-21`). `generatedAt` ends in `Z`.
   - `slugify`: `"Café Déjà"` → `cafe-deja`, `"!!!"` → `app`.
 
   (AC 11, 12)
@@ -1278,7 +1474,9 @@ Backend (`vitest`, `supertest`, Node environment):
   - Extract failure falls back to snippets.
   - Draft invalid then valid (retry); invalid twice → `LLM_FAILED`.
   - Verifier throws → still a guide.
-  - Store put throws → `persisted:false`.
+  - Store `put` throws → `persisted:false` and `setCache` not called. `put` succeeds but `setCache` throws → `persisted:true`, and the `save` step is `done` with detail "Saved (cache unavailable)".
+  - With `curatedDomains = {stripe.com}`, a `stripe.com` search hit emits `source { kind: 'official' }`.
+  - `draft` receives `repairIssues: null` on the first call and a non-empty array on the repair call.
   - Abort mid-run stops further dep calls.
   - Abort during a recoverable stage (the verify fake rejects after the signal aborts) rethrows `signal.reason` instead of continuing.
   - The pipeline never emits `meta` or `done`.
@@ -1289,7 +1487,8 @@ Backend (`vitest`, `supertest`, Node environment):
   - 503 CONFIG_MISSING
   - SSE content-type and event order (parsed with a tiny test SSE parser)
   - curated short-circuit not counted by the limiter
-  - 429 after `RATE_LIMIT_MAX=2` fresh calls
+  - 429 after `RATE_LIMIT_MAX=2` fresh calls, with a numeric `Retry-After` header ≥ 1 and a matching `error.retryAfterSec`
+  - `meta` payload equals `{ requestId, query: 'Asana', appName: 'Asana', key: 'asana', startedAt, force: false }` for body `{"app":"  Asana  "}`
   - BUSY when the concurrency is saturated (stub pipeline awaiting a deferred promise). Two simultaneous requests with `MAX_CONCURRENT_GENERATIONS=1` give exactly one BUSY.
   - The slot is released after 429, after an error, and after client abort. A follow-up request after each succeeds.
   - `ALLOWED_ORIGINS=""` in the config falls back to the localhost defaults.
@@ -1297,6 +1496,9 @@ Backend (`vitest`, `supertest`, Node environment):
   - `TIMEOUT` with `GENERATION_TIMEOUT_MS` lowered to 50 ms and a hanging stub (the config schema min is bypassed in tests via a direct Config object)
   
   (AC 4–10, 13)
+- `sources.test.ts`: the 12 `classifySource` cases in the "Source classification" table, plus `registrableDomain('learn.microsoft.com') === 'microsoft.com'`.
+- `deployFiles.test.ts`: `.env.example` ⊆ `render.yaml` env keys, `CONFIG_KEYS` equals the `.env.example` keys, no key-shaped secrets, and the render.yaml build/start/health strings. (AC 23, 25)
+- `llm.test.ts`: with the OpenAI client stubbed, `LengthFinishReasonError` from `openai/error` → `DraftInvalid`, `OpenAI.AuthenticationError` → non-retryable `LLM_FAILED`, and the draft and verify calls receive `timeout: 50000` and `40000`.
 - `fileStore.test.ts`: put/get/listRecent/cache TTL expiry in an `os.tmpdir()` folder, plus a corrupt cache file treated as empty.
 - `upstashStore.test.ts`: the store takes an injected minimal Redis-like interface (`get/set/lpush/ltrim/lrange`). It's tested with an in-memory fake, and the real `Redis` is constructed only in `createStore`.
 
@@ -1317,7 +1519,7 @@ Manual / integration checks:
 - `vite preview` deep link `/guides/github` (AC 15).
 - Print preview (AC 22).
 - A real keyed end-to-end run locally and on Render.
-- `npm run check:links` (AC 3).
+- `npm run check:links` (AC 3): zero `broken`, zero missing, and zero `redirected` before the final PDF build.
 - `npm run pdf` (AC 24).
 - A secrets grep (AC 25).
 
@@ -1346,6 +1548,40 @@ Manual / integration checks:
 - The PDF is generated from repo data, so the sample excerpts can't drift from the shipped JSON.
 
 ## Responses to design review
+
+### Round 2 (this revision)
+
+All 15 findings were addressed. None was backlogged or ignored.
+
+| # | Sev | Response |
+|---|---|---|
+| 1 | MED | Addressed. `render.yaml` now declares `PORT=10000`, `STORE=auto`, `DATA_DIR=./.data` and `LOG_LEVEL=info`. The env parity rule is stated, `.env.example` has a fixed parseable format and an explicit 17-key list, and `config.ts` exports `CONFIG_KEYS`. `deployFiles.test.ts` asserts `.env.example` ⊆ `render.yaml` keys, `CONFIG_KEYS` = `.env.example` keys, no key-shaped secrets, and the build/start/health strings. |
+| 2 | MED | Addressed. The new `src/agent/sources.ts` has exact `registrableDomain`, `brandTokens` and `classifySource` functions. Official means the registrable domain equals `domainHint`, or the brand label exactly equals `key` or a ≥4-char displayName token, or the registrable domain is in the matched curated guide's official sources (`curated.officialDomainsFor`, passed as `PipelineCtx.curatedDomains`). One deviation from the review's sketch: a small `GENERIC_TOKENS` stoplist excludes words like "connect" and "teams" from the displayName tokens, so "Stripe Connect" can't make `connect.com` official. `key` itself is always included. 12 unit cases cover the review's 5 plus these. The two-label limitation for `.co.uk`-style suffixes is documented. It only fails safe, since it can only lower confidence. |
+| 3 | MED | Addressed. The candidate list is replaced by the review's canonical table, with ≥2 official URLs per guide, all HTTP 200 on 2026-10-20. Authors must still read each page before citing it. There are author notes for HubSpot's `legacy-apps` move, for using Figma's `oauth-apps` page to settle the review question, and for logging moved URLs as evidence-log corrections. `check-links` gains a `redirected` status (normalized URL comparison) that prints "update to {finalUrl}" without failing. The final PDF build fails on remaining `broken` or `redirected` entries unless `--draft` is passed. |
+| 4 | NIT | Addressed. One client, `new OpenAI({ apiKey, maxRetries: 1 })`, with per-request `timeout: 50_000` (draft and repair) and `40_000` (verify). The conflicting statements are removed. `createLlm(client, …)` makes it stubbable. |
+| 5 | NIT | Addressed. `LengthFinishReasonError` and `ContentFilterFinishReasonError` are imported from `openai/error`. `DraftInvalid` is defined. |
+| 6 | NIT | Addressed. The limiter handler casts `(req as AugmentedRequest).rateLimit`, and the full handler is written out with a `Retry-After` computation that's safe when `resetTime` is undefined. |
+| 7 | NIT | Addressed. `TavilySearchReq`, `TavilyResult`, `PromptSource`, `DraftArgs` (with `repairIssues`), `VerifyArgs` and `PipelineCtx` are defined in `pipeline.ts`, along with the Tavily field coercion. |
+| 8 | NIT | Addressed. `lastVerified = now.toISOString().slice(0, 10)`, and the `buildMeta` helper is shared by the short-circuit and fresh paths. `AppInput.raw` is now defined as the trimmed, collapsed input, so `meta.query` and `Guide.query` are always ≤200 chars. A raw padded body could otherwise exceed `Guide.query`'s max. `requestId` generation is specified. |
+| 9 | NIT | Addressed. `persisted` equals `put` succeeding. A `setCache` failure logs `warn` and marks the save step done with "Saved (cache unavailable)". The error table and pipeline tests are updated. |
+| 10 | NIT | Addressed. `monogram = input.key.slice(0, 2).toUpperCase()`, with an "Ünity" test. |
+| 11 | NIT | Addressed. A ref'd `setTimeout` + `AbortController` per URL, with the timeout classified as `broken` and `httpStatus: null`. A `results.length === urls.length` assertion exits 1 and lists any missing URLs. |
+| 12 | NIT | Addressed. The overview claim is corrected, and `.gitignore` replaces the three env lines with `.env*` followed by `!.env.example`. |
+| 13 | NIT | Addressed. `frontend/package.json` has `"type": "module"`. `postcss.config.js` and `tailwind.config.ts` are written out exactly. |
+| 14 | NIT | Addressed. All `build-pdf.mjs`/`capture-screenshots.mjs` paths are anchored to `path.dirname(fileURLToPath(import.meta.url))`. The footer template is concrete HTML using `pageNumber`/`totalPages`. |
+| 15 | NIT | Addressed. There's an authoring rule that `generatedAt` is UTC with `Z` (e.g. `2026-10-20T00:00:00Z`), and a postprocess test asserting the `Z` suffix. |
+
+Still unverified after round 2, carried forward from the review:
+
+- That the OpenAI API accepts the `{"type":"string","nullable":true}` form `zodResponseFormat` 4.73.0 emits.
+- The Structured Outputs size limit (about 109 properties).
+- Vercel's outside-root-directory default.
+- Render's proxy hop count and edge SSE buffering.
+- Tavily's auth header, field names and quota codes.
+
+Each has a documented mitigation and surfaces on the first keyed run or deploy.
+
+### Round 1
 
 Every finding was addressed. None was backlogged or ignored.
 
@@ -1383,4 +1619,4 @@ Still unverified, carried forward from the review:
 - Render's proxy hop count. Mitigated by the debug log and the README step.
 - Current Structured Outputs size limits. Surfaced on the first keyed run.
 - Tavily field names and quota codes. Non-JSON or missing fields degrade to empty results or `SEARCH_FAILED`.
-- The candidate doc URLs, which are gated by `check-links`.
+- The candidate doc URLs (resolved in round 2 by the canonical URL table).

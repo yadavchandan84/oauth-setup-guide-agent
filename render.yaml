@@ -1,0 +1,47 @@
+services:
+  - type: web
+    name: oauth-guide-agent-api
+    runtime: node
+    plan: free
+    region: oregon
+    buildCommand: cd backend && npm ci --include=dev && npm run build
+    startCommand: cd backend && npm start
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+      - key: ALLOWED_ORIGINS
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
+        value: gpt-4o-mini
+      - key: TAVILY_API_KEY
+        sync: false
+      - key: UPSTASH_REDIS_REST_URL
+        sync: false
+      - key: UPSTASH_REDIS_REST_TOKEN
+        sync: false
+      - key: RATE_LIMIT_MAX
+        value: "5"
+      - key: RATE_LIMIT_WINDOW_MS
+        value: "3600000"
+      - key: MAX_CONCURRENT_GENERATIONS
+        value: "2"
+      - key: GENERATION_TIMEOUT_MS
+        value: "120000"
+      - key: CACHE_TTL_HOURS
+        value: "168"
+      - key: TRUST_PROXY
+        value: "1"
+      - key: PORT
+        value: "10000"        # Render's default port; the app reads PORT
+      - key: STORE
+        value: auto
+      - key: DATA_DIR
+        value: ./.data
+      - key: LOG_LEVEL
+        value: info

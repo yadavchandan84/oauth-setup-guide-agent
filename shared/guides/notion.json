@@ -1,0 +1,150 @@
+{
+  "schemaVersion": 1,
+  "slug": "notion",
+  "aliases": ["notion", "notionapi", "notionintegration"],
+  "app": {
+    "name": "Notion",
+    "website": "https://www.notion.com",
+    "category": "Productivity",
+    "brand": { "color": "#000000", "monogram": "N" }
+  },
+  "summary": "Notion's internal integration is one of the quickest ways to call an API: create a connection in the developer portal, copy its token, and share the pages you want it to touch. For a multi-workspace product you create a public connection that uses OAuth 2.0. There is no mandatory review to use a connection; publishing publicly is optional. The one recurring gotcha is that pages must be explicitly shared with the connection before it can read them.",
+  "oauthAvailability": {
+    "status": "supported",
+    "note": "Public connections use OAuth 2.0; internal connections use a static token. Pages must be shared with the connection.",
+    "alternatives": ["Internal connection with a static API token for single-workspace automations", "Personal access token for user-scoped scripts"]
+  },
+  "difficulty": { "level": "Easy", "reason": "A short portal form and token copy; OAuth is only needed for multi-workspace public connections." },
+  "timeEstimate": {
+    "handsOn": { "min": 30, "max": 60, "unit": "minutes" },
+    "approvalWait": { "min": 0, "max": 0, "unit": "minutes", "note": "No mandatory review to use a connection." },
+    "criticalPath": "Creating the connection and sharing pages with it is the only required work."
+  },
+  "review": {
+    "required": false,
+    "requiredWhen": "No review is required to build or use a connection. Publishing a public connection broadly is optional.",
+    "types": ["optional-listing"],
+    "stages": []
+  },
+  "prerequisites": [
+    { "item": "A Notion workspace", "detail": "You must be a workspace owner to create an internal connection.", "actor": "human" },
+    { "item": "A connection created in the developer portal", "detail": "Choose internal (single workspace) or public (OAuth, multi-workspace).", "actor": "assist" },
+    { "item": "Redirect URI(s) for public connections", "detail": "Set under the OAuth configuration section; installation scope is fixed at creation.", "actor": "assist" }
+  ],
+  "steps": [
+    {
+      "title": "Create a connection in the developer portal",
+      "detail": "Create a new connection. For a single workspace choose an internal connection; for a product used by other Notion users choose a public connection that uses OAuth 2.0.",
+      "consoleUrl": "https://developers.notion.com/guides/get-started/authorization",
+      "actor": "assist",
+      "estimate": "10 min"
+    },
+    {
+      "title": "Configure OAuth (public) or copy the token (internal)",
+      "detail": "For a public connection, add redirect URI(s) and choose the installation scope (any workspace or selected workspaces) under OAuth configuration. For an internal connection, retrieve the API token from the Configuration tab.",
+      "consoleUrl": "https://developers.notion.com/guides/get-started/authorization",
+      "actor": "assist",
+      "estimate": "15 min",
+      "gotcha": "A public connection's installation scope cannot be changed after creation."
+    },
+    {
+      "title": "Share pages with the connection",
+      "detail": "In Notion, open each target page, click the ••• menu, choose Add connections, and select your connection. The API cannot see pages that have not been shared with it.",
+      "consoleUrl": null,
+      "actor": "human",
+      "estimate": "5 min",
+      "gotcha": "API requests against unshared pages return an error; this is the most common first-run failure."
+    },
+    {
+      "title": "Implement the OAuth flow (public connections)",
+      "detail": "Send users to the connection's authorization URL, then exchange the returned code for an access token tied to the installing workspace.",
+      "consoleUrl": "https://developers.notion.com/guides/get-started/quick-start",
+      "actor": "agent",
+      "estimate": "30 min"
+    }
+  ],
+  "redirectUris": {
+    "notes": [
+      "Redirect URIs for public connections are set under the OAuth configuration section.",
+      "The installation scope (any workspace vs selected) is fixed at creation time."
+    ],
+    "examples": ["https://app.example.com/notion/callback"]
+  },
+  "scopes": {
+    "recommended": [
+      { "scope": "read content", "purpose": "Read pages and databases shared with the connection." },
+      { "scope": "update content", "purpose": "Create and update pages and database entries." },
+      { "scope": "insert content", "purpose": "Append blocks and create new pages." }
+    ],
+    "sensitive": [
+      { "scope": "read user information including email", "level": "sensitive", "consequence": "Exposes user profile data including email; request only if needed." }
+    ],
+    "notes": [
+      "Notion's access model is capability-plus-sharing: a connection only sees pages explicitly shared with it.",
+      "Capabilities are configured on the connection rather than requested as granular OAuth scope strings."
+    ]
+  },
+  "blockers": [
+    {
+      "title": "API returns an error for a page that exists",
+      "symptom": "Requests for a known page fail with a not-found or unauthorized error.",
+      "cause": "The page was never shared with the connection via Add connections.",
+      "resolution": "Open the page, use the ••• menu to add the connection, then retry.",
+      "actor": "human"
+    },
+    {
+      "title": "Installation scope cannot be widened",
+      "symptom": "A public connection cannot install into additional workspaces.",
+      "cause": "The installation scope was set to selected workspaces and cannot be changed after creation.",
+      "resolution": "Create a new public connection with the intended installation scope.",
+      "actor": "human"
+    }
+  ],
+  "agentHandoff": {
+    "agentCan": [
+      "Implement the public-connection OAuth exchange",
+      "Build API calls against shared pages and databases",
+      "Draft the integration setup instructions"
+    ],
+    "humanMust": [
+      "Create the connection and (for internal) hold the API token",
+      "Share the specific pages with the connection"
+    ],
+    "handoffPoints": [
+      "A human creates the connection and shares pages; the agent wires the API and OAuth flow."
+    ]
+  },
+  "confidence": {
+    "difficulty": { "level": "verified", "note": "No mandatory review; authorization flow documented.", "sourceRefs": [0] },
+    "timeEstimate": { "level": "community", "note": "Hands-on effort is an author estimate; no approval wait.", "sourceRefs": [0] },
+    "review": { "level": "community", "note": "No review step is documented; listing behavior is author-reported.", "sourceRefs": [0] },
+    "prerequisites": { "level": "verified", "note": "Workspace-owner and connection-creation requirements from the authorization guide.", "sourceRefs": [0] },
+    "steps": { "level": "verified", "note": "Steps follow the authorization and quick-start guides.", "sourceRefs": [0, 1] },
+    "redirectUris": { "level": "verified", "note": "Redirect URI and installation-scope handling documented.", "sourceRefs": [0] },
+    "scopes": { "level": "community", "note": "Notion uses capabilities plus page sharing rather than granular scope strings.", "sourceRefs": [0] },
+    "blockers": { "level": "verified", "note": "Page-sharing requirement and fixed installation scope documented.", "sourceRefs": [0] },
+    "agentHandoff": { "level": "community", "note": "Author judgment on the agent/human split.", "sourceRefs": [0] }
+  },
+  "verification": {
+    "lastVerified": "2026-10-20",
+    "sources": [
+      { "url": "https://developers.notion.com/guides/get-started/authorization", "title": "Authorization - Notion Docs", "kind": "official", "accessed": "2026-10-20" },
+      { "url": "https://developers.notion.com/guides/get-started/quick-start", "title": "Quick Start - Notion Docs", "kind": "official", "accessed": "2026-10-20" }
+    ],
+    "checked": [
+      "Confirmed public connections use OAuth 2.0 and internal connections use a static token.",
+      "Confirmed pages must be explicitly shared with a connection before the API can access them.",
+      "Confirmed installation scope is fixed at creation."
+    ],
+    "corrected": [
+      "App website redirected from www.notion.so to www.notion.com; updated app.website to the final URL."
+    ],
+    "uncertain": [
+      "Notion does not document a mandatory listing review; the optional-listing classification is author judgment."
+    ]
+  },
+  "generatedBy": "curated",
+  "generatedAt": "2026-10-20T00:00:00Z",
+  "model": null,
+  "query": null
+}

@@ -44,8 +44,8 @@ function mapProviderError(err: unknown, log: Logger): AgentError {
   }
   if (err instanceof OpenAI.RateLimitError) {
     const code = (err as { code?: unknown }).code;
-    if (code === 'insufficient_quota') {
-      return new AgentError('LLM_FAILED', 'LLM quota exhausted', false);
+    if (code === 'insufficient_quota' || code === 'credit_balance_exhausted') {
+      return new AgentError('LLM_FAILED', 'LLM quota exhausted (add OpenAI credits)', false);
     }
     return new AgentError('LLM_FAILED', 'The LLM provider failed to respond', true);
   }

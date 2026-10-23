@@ -1,7 +1,7 @@
 {
-  "VERCEL_URL": "https://YOUR-APP.vercel.app",
-  "RENDER_URL": "https://YOUR-API.onrender.com",
-  "REPO_URL": "https://github.com/YOUR-USER/YOUR-REPO",
+  "VERCEL_URL": "https://oauth-setup-guide-agent.vercel.app",
+  "RENDER_URL": "https://oauth-setup-guide-agent.onrender.com",
+  "REPO_URL": "https://github.com/yadavchandan84/oauth-setup-guide-agent",
   "CANDIDATE_EMAIL": "yadavchandan6103@gmail.com",
-  "SUBMISSION_DATE": null
+  "SUBMISSION_DATE": "2026-10-24"
 }

@@ -11,7 +11,7 @@ Know before you build: how hard a provider's OAuth app is to set up and get appr
 
 | Live app | API health | Repository |
 |---|---|---|
-|[ `<VERCEL_URL>`](https://oauth-setup-guide-agent.vercel.app/) | [`<RENDER_URL>/api/health`](https://oauth-setup-guide-agent.onrender.com) | `https://github.com/<your-username>/oauth-setup-guide-agent` |
+|[ `<VERCEL_URL>`](https://oauth-setup-guide-agent.vercel.app/) | [`<RENDER_URL>/api/health`](https://oauth-setup-guide-agent.onrender.com) | [`https://github.com/<your-username>/oauth-setup-guide-agent`](https://github.com/yadavchandan84/oauth-setup-guide-agent) |
 
 > The URLs above are placeholders until deployment. Replace them with the real Vercel, Render and GitHub URLs.
 

@@ -121,7 +121,8 @@ async function main() {
       const input = await currentPage.$('input[type="text"], input:not([type])');
       if (input) {
         await input.type('Asana');
-        const btn = await currentPage.$x("//button[contains(., 'Generate')]").then((b) => b[0]).catch(() => null);
+        // Page.$x was removed in Puppeteer 22; use the ::-p-xpath query handler instead.
+        const btn = await currentPage.$('::-p-xpath(//button[contains(., "Generate")])').catch(() => null);
         if (btn) {
           await btn.click();
           await sleep(6000);

@@ -4,25 +4,24 @@ When a reviewer types an app name the library doesn't already cover and clicks *
 
 ## What the reviewer sees
 
-A sequence of step events, roughly:
+A sequence of step events, using the labels the pipeline emits:
 
-1. *Resolving "Asana"…*
-2. *Searching official docs…* (three Tavily queries in parallel)
-3. *Reading developer.asana.com…* (source events stream in as pages are read)
-4. *Drafting the guide…*
-5. *Verifying against sources…*
-6. *Assembling and validating…*
-7. *Saving…* then the finished guide renders in place.
+1. *Resolving Asana…*
+2. *Searching docs…* (three Tavily queries in parallel)
+3. *Reading &lt;page title&gt;…* (one step per page read; source events stream in alongside)
+4. *Drafting guide…* (the draft is assembled and schema-validated inside this step, with at most one repair attempt)
+5. *Verifying claims…*
+6. *Saving shareable guide…*, which ends as *Saved shareable guide*, then the finished guide renders in place.
 
 Streaming the steps is deliberate: a 30–90 second wait reads as the agent working, not as a hung page.
 
 ## Short-circuits and guards
 
 - **Curated or cached hit** resolves in the first stage and returns immediately, flagged `cached`. These do **not** count against the rate limit.
-- **No keys configured** → a clean `503 CONFIG_MISSING` streamed as an error event, never a blank screen. The curated library keeps working regardless.
+- **No keys configured** → a `503` JSON response with code `CONFIG_MISSING`, sent before any stream opens. The UI shows a clear message instead of a blank screen, and the curated library keeps working.
 - **Rate limit** → `429` with a `Retry-After` so a reviewer (or a bot) can't run up the API bill.
 - **Concurrency cap** → `503 BUSY` when too many generations run at once.
-- **Timeout** → the request aborts at 120 seconds with a `TIMEOUT` error event.
+- **Timeout** → the run aborts after `GENERATION_TIMEOUT_MS` (code default 120 seconds; the Render blueprint sets 180 seconds) with a `TIMEOUT` error event.
 - **Client disconnect** → the server detects the closed response and stops the pipeline (`CLIENT_GONE`), so an abandoned run doesn't keep spending.
 
 ## Determinism after the model

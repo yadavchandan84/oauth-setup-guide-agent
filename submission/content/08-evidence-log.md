@@ -2,6 +2,8 @@
 
 Every curated guide was researched against official documentation on **20 October 2026**, and every cited URL is re-checked by `scripts/check-links.mjs`. The table below is generated from the committed `shared/link-check-report.json`.
 
+For curated guides, "confirmed" or `verified` means two things: the cited URL resolves, and the claim matched the page as read on 2026-10-20. The GitHub, Jira, Linear and Shopify guides were re-read against their cited pages on 2026-10-23.
+
 {{LINK_CHECK_TABLE}}
 
 ## Learned (docs that have moved or been renamed)

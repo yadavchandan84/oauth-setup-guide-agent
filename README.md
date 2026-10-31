@@ -11,9 +11,9 @@ Know before you build: how hard a provider's OAuth app is to set up and get appr
 
 | Live app | API health | Repository |
 |---|---|---|
-|[ `<VERCEL_URL>`](https://oauth-setup-guide-agent.vercel.app/) | [`<RENDER_URL>/api/health`](https://oauth-setup-guide-agent-2.onrender.com/api/health) | [`https://github.com/<your-username>/oauth-setup-guide-agent`](https://github.com/yadavchandan84/oauth-setup-guide-agent) |
+| [oauth-setup-guide-agent.vercel.app](https://oauth-setup-guide-agent.vercel.app/) | [oauth-setup-guide-agent-2.onrender.com/api/health](https://oauth-setup-guide-agent-2.onrender.com/api/health) | [github.com/yadavchandan84/oauth-setup-guide-agent](https://github.com/yadavchandan84/oauth-setup-guide-agent) |
 
-> The URLs above are placeholders until deployment. Replace them with the real Vercel, Render and GitHub URLs.
+> The API runs on Render's free tier, which sleeps when idle. If the first live generation fails or is slow, open the API health link, wait 30-60 seconds for `"status":"ok"`, then try again.
 
 ![Landing page with the 3D hero](submission/screenshots/01-landing.jpg)
 
